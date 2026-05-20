@@ -43,6 +43,10 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then((clients) => clients.forEach((c) =>
+        c.postMessage({ type: 'CACHE_VERSION', value: CACHE })
+      ))
   );
 });
 

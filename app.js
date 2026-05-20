@@ -824,22 +824,26 @@ const setDrawerMode = (mode) => {
   renderDrawerBody();
 };
 
-// Ask the active service worker which cache it's serving. Lets the user
-// confirm at a glance that they're seeing the freshest deployed shell.
+// Show what cache the active service worker is serving so the user can tell
+// at a glance whether they've got the latest deployed shell. The SW also
+// broadcasts its version on `activate`, so this is best-effort polling +
+// passive listening.
+const setSwVersion = (value) => { drawerVersion.textContent = value || ''; };
+
 const askSwVersion = () => {
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.ready.then((reg) => {
     const target = navigator.serviceWorker.controller || reg.active;
-    if (!target) return;
-    const channel = new MessageChannel();
-    channel.port1.onmessage = (e) => {
-      if (e.data?.type === 'CACHE_VERSION') {
-        drawerVersion.textContent = e.data.value;
-      }
-    };
-    target.postMessage({ type: 'GET_CACHE_VERSION' }, [channel.port2]);
+    target?.postMessage({ type: 'GET_CACHE_VERSION' });
   }).catch(() => {});
 };
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data?.type === 'CACHE_VERSION') setSwVersion(e.data.value);
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', askSwVersion);
+}
 
 const openDrawer = () => {
   if (drawerOpen) return;
@@ -1118,7 +1122,7 @@ const sessionTextareaField = ({ label, path, ...opts }) =>
 const renderPlayerBlock = (idx) => {
   const summary = el('summary', { class: 'sessionf__summary' },
     el('span', { class: 'sessionf__summary-mark' }, '▸'),
-    el('span', null, `Jugador ${idx + 1}`),
+    el('span', {}, `Jugador ${idx + 1}`),
   );
   const block = el('details', { class: 'sessionf__player' }, summary);
 
