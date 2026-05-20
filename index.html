@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Compañero KOR</title>
+  <meta name="description" content="Un grimorio compañero para Tainted Grail: Reyes de la Perdición — menhires, diario, diplomacia y la Hoja de Estados al alcance de la mano." />
+  <meta name="theme-color" content="#15090a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="KOR" />
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+
+  <link rel="apple-touch-startup-image" href="./splash/splash-1290x2796.png"
+        media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-1179x2556.png"
+        media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-1284x2778.png"
+        media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-1170x2532.png"
+        media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-1125x2436.png"
+        media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-1242x2688.png"
+        media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-828x1792.png"
+        media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-1242x2208.png"
+        media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+  <link rel="apple-touch-startup-image" href="./splash/splash-750x1334.png"
+        media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+
+  <link rel="stylesheet" href="./fonts/fonts.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="vellum" aria-hidden="true"></div>
+
+  <header class="tome-head">
+    <div class="tome-head__crest" aria-hidden="true">
+      <svg viewBox="0 0 64 64" width="40" height="40">
+        <defs>
+          <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#d8b765"/>
+            <stop offset="1" stop-color="#7a5a23"/>
+          </linearGradient>
+        </defs>
+        <g fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-linecap="round">
+          <circle cx="32" cy="32" r="22"/>
+          <circle cx="32" cy="32" r="15" opacity=".7"/>
+          <path d="M32 10v44M10 32h44M16 16l32 32M48 16L16 48" opacity=".55"/>
+          <circle cx="32" cy="32" r="3.2" fill="#7a1a17" stroke="#d8b765"/>
+        </g>
+      </svg>
+    </div>
+    <div class="tome-head__title">
+      <h1>Compañero KOR</h1>
+      <p class="tome-head__sub">un grimorio de los reyes de la perdición</p>
+    </div>
+    <div class="tome-head__actions">
+      <button id="undo" class="iconbtn" type="button" aria-label="Deshacer" title="Deshacer (Ctrl/⌘Z)">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="M8 5 3 10l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 10h10a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button id="redo" class="iconbtn" type="button" aria-label="Rehacer" title="Rehacer (Ctrl/⌘⇧Z)">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path d="m16 5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 10H11a6 6 0 0 0 0 12h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="view" class="tome"></main>
+
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button class="tab" role="tab" data-tab="exploration" aria-selected="true">
+      <span class="tab__glyph" aria-hidden="true">❂</span>
+      <span class="tab__name">Andanzas</span>
+    </button>
+    <button class="tab" role="tab" data-tab="journal" aria-selected="false">
+      <span class="tab__glyph" aria-hidden="true">⚜</span>
+      <span class="tab__name">Diario</span>
+    </button>
+    <button class="tab" role="tab" data-tab="diplomacy" aria-selected="false">
+      <span class="tab__glyph" aria-hidden="true">⚔</span>
+      <span class="tab__name">Diplomacia</span>
+    </button>
+    <button class="tab" role="tab" data-tab="statuses" aria-selected="false">
+      <span class="tab__glyph" aria-hidden="true">✤</span>
+      <span class="tab__name">Estados</span>
+    </button>
+  </nav>
+
+  <dialog id="prompt-dialog" class="prompt" aria-labelledby="prompt-title">
+    <form method="dialog" class="prompt__card">
+      <h2 id="prompt-title" class="prompt__title">Inscribir</h2>
+      <p id="prompt-body" class="prompt__body" hidden></p>
+      <label class="prompt__field">
+        <span id="prompt-label" class="prompt__label">Nombre</span>
+        <input id="prompt-input" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" />
+      </label>
+      <div class="prompt__actions">
+        <button type="button" class="btn btn--ghost" data-prompt-cancel>Cancelar</button>
+        <button type="submit" class="btn btn--ink" data-prompt-accept>Inscribir</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="prompt" aria-labelledby="confirm-title">
+    <form method="dialog" class="prompt__card">
+      <h2 id="confirm-title" class="prompt__title">¿Tachar del tomo?</h2>
+      <p id="confirm-body" class="prompt__body"></p>
+      <div class="prompt__actions">
+        <button type="button" class="btn btn--ghost" data-confirm-cancel>Conservar</button>
+        <button type="submit" class="btn btn--blood" data-confirm-accept>Tachar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
+</body>
+</html>

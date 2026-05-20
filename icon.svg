@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="leather" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#2a1410"/>
+      <stop offset="1" stop-color="#15090a"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#d4b35c"/>
+      <stop offset="1" stop-color="#7a5a23"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="url(#leather)"/>
+  <g fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round">
+    <circle cx="100" cy="100" r="68"/>
+    <circle cx="100" cy="100" r="48" opacity="0.6"/>
+    <path d="M100 32v136M32 100h136" opacity="0.55"/>
+    <path d="M52 52l96 96M148 52L52 148" opacity="0.4"/>
+  </g>
+  <circle cx="100" cy="100" r="10" fill="#7a1a17" stroke="#d4b35c" stroke-width="2"/>
+  <text x="100" y="108" text-anchor="middle"
+        font-family="Georgia, serif" font-size="14"
+        font-weight="700" fill="#d4b35c">K</text>
+</svg>

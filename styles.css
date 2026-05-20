@@ -1,0 +1,1003 @@
+/* =========================================================================
+   KOR Companion — mythic grimoire
+   ========================================================================= */
+
+:root {
+  /* Tome — surrounding dark leather */
+  --leather: #15090a;
+  --leather-shine: #2a1410;
+  --leather-deep: #0a0405;
+
+  /* Parchment — the pages of the tome */
+  --vellum: #e8dcc0;
+  --vellum-hi: #f3e9cf;
+  --vellum-lo: #c9b88c;
+  --vellum-edge: #9b8350;
+
+  /* Inks */
+  --ink: #2a1408;
+  --ink-soft: #523722;
+  --ink-faint: #826248;
+
+  --blood: #7a1a17;
+  --blood-bright: #a8281f;
+  --blood-deep: #4a0a0a;
+
+  --gold: #a8853f;
+  --gold-bright: #d4b35c;
+  --gold-deep: #6f5421;
+
+  --ash: #6a5538;
+
+  --col: min(100% - 1.5rem, 480px);
+  --gutter: 1rem;
+
+  --rad: 2px;
+  --shadow-ink: 0 1px 0 rgba(42, 20, 8, .14);
+  --shadow-page: 0 18px 40px rgba(0,0,0,.55), 0 4px 12px rgba(0,0,0,.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--leather);
+  color: var(--ink);
+  font-family: 'Iowan Old Style', 'Hoefler Text', Georgia, 'Apple Garamond', serif;
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Extend layout coordinate space into the iPhone home-indicator strip so
+     `position: fixed; bottom: 0` on .tabs reaches the physical screen edge. */
+  min-height: calc(100dvh + env(safe-area-inset-bottom, 0px));
+}
+
+body {
+  /* Top: env() + small breathing room so interactive elements never sit
+     flush against the camera notch / Dynamic Island. */
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--gutter));
+  /* Bottom: clear the tab band + safe-area strip together (additive, not max). */
+  padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
+  background-color: var(--leather);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(168,40,31,.08), transparent 70%),
+    radial-gradient(ellipse 120% 80% at 50% 110%, rgba(0,0,0,.6), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.014) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(45deg,  rgba(0,0,0,.10) 0 2px, transparent 2px 6px);
+}
+
+/* Subtle grain over the whole tome */
+.vellum {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: .35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* =========================================================================
+   Tome head — the gilded crown of the book
+   ========================================================================= */
+
+.tome-head {
+  position: relative;
+  z-index: 2;
+  width: var(--col);
+  margin: 0 auto .65rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .75rem;
+  padding: .35rem 0 .9rem;
+  border-bottom: 1px solid rgba(168,133,63,.35);
+}
+.tome-head::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: .55;
+}
+.tome-head__crest {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+.tome-head__title h1 {
+  font-family: 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.55rem;
+  margin: 0;
+  color: var(--vellum-hi);
+  letter-spacing: .01em;
+  text-shadow: 0 1px 0 rgba(0,0,0,.6), 0 0 14px rgba(168,40,31,.18);
+}
+.tome-head__sub {
+  margin: 0;
+  font-family: 'IM Fell DW Pica SC Local', 'IM Fell English Local', Georgia, serif;
+  font-size: .72rem;
+  letter-spacing: .14em;
+  color: var(--gold);
+  text-transform: lowercase;
+}
+.tome-head__actions {
+  display: flex;
+  gap: .35rem;
+}
+
+.iconbtn {
+  width: 40px;
+  min-height: 40px;
+  height: 40px;
+  display: grid; place-items: center;
+  background: transparent;
+  border: 1px solid rgba(168,133,63,.35);
+  color: var(--vellum-lo);
+  border-radius: var(--rad);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s, transform .1s;
+}
+.iconbtn:hover { color: var(--gold-bright); border-color: var(--gold); }
+.iconbtn:active { transform: translateY(1px); }
+.iconbtn[disabled] {
+  color: rgba(168,133,63,.25);
+  border-color: rgba(168,133,63,.12);
+  cursor: not-allowed;
+}
+
+/* =========================================================================
+   Tome — the parchment surface
+   ========================================================================= */
+
+.tome {
+  position: relative;
+  z-index: 2;
+  width: var(--col);
+  margin: 0 auto;
+  padding: 1.4rem 1.15rem 1.6rem;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(122,90,40,.18), transparent 30%),
+    radial-gradient(circle at 82% 88%, rgba(122,90,40,.18), transparent 35%),
+    radial-gradient(circle at 60% 50%, rgba(232,220,192,.0), rgba(168,133,63,.06) 80%),
+    linear-gradient(180deg, var(--vellum-hi), var(--vellum) 30%, var(--vellum) 70%, var(--vellum-lo));
+  border-radius: 1px;
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 90, 40, .35),
+    inset 0 0 0 3px rgba(232,220,192,.7),
+    inset 0 0 60px rgba(122, 90, 40, .18),
+    var(--shadow-page);
+}
+/* foxing stains */
+.tome::before, .tome::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(8px);
+  opacity: .35;
+}
+.tome::before {
+  top: 6%; right: 8%;
+  width: 70px; height: 50px;
+  background: radial-gradient(circle, #8a5a2a, transparent 70%);
+}
+.tome::after {
+  bottom: 12%; left: 6%;
+  width: 90px; height: 60px;
+  background: radial-gradient(circle, #7a4a22, transparent 70%);
+  opacity: .25;
+}
+
+/* =========================================================================
+   Page headings — illuminated capitals
+   ========================================================================= */
+
+.scene {
+  position: relative;
+  z-index: 1;
+}
+.scene + .scene { margin-top: 1.6rem; }
+
+.scene__title {
+  font-family: 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.35rem;
+  margin: 0 0 .15rem;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+}
+.scene__title::first-letter {
+  font-size: 1.9em;
+  color: var(--blood);
+  font-weight: 400;
+  margin-right: .04em;
+  line-height: .9;
+  text-shadow: 0 1px 0 rgba(42,20,8,.2);
+}
+.scene__sub {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .72rem;
+  letter-spacing: .16em;
+  color: var(--ash);
+  margin: 0 0 .9rem;
+  text-transform: lowercase;
+}
+.flourish {
+  display: block;
+  margin: 0 auto 1.1rem;
+  width: 70%;
+  height: 14px;
+  color: var(--gold-deep);
+  opacity: .85;
+}
+
+/* =========================================================================
+   Generic ink shapes
+   ========================================================================= */
+
+.btn {
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+  font-family: 'IM Fell DW Pica SC Local', 'IM Fell English Local', Georgia, serif;
+  letter-spacing: .12em;
+  text-transform: lowercase;
+  font-size: .82rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform .1s, background .15s, color .15s, border-color .15s;
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--ink-faint);
+}
+.btn--ghost:hover { color: var(--ink); border-color: var(--ink-soft); }
+.btn--ink {
+  background: var(--ink);
+  color: var(--vellum-hi);
+  border: 1px solid var(--ink);
+}
+.btn--ink:hover { background: var(--blood-deep); border-color: var(--blood); }
+.btn--blood {
+  background: var(--blood);
+  color: var(--vellum-hi);
+  border: 1px solid var(--blood-deep);
+}
+.btn--blood:hover { background: var(--blood-bright); }
+.btn:active { transform: translateY(1px); }
+
+/* The action row at the bottom of a scene */
+.actions {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+/* =========================================================================
+   The wayfaring page
+   ========================================================================= */
+
+.daycard {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem 0 .85rem;
+  border-bottom: 1px solid rgba(122, 90, 40, .35);
+  margin-bottom: 1.1rem;
+}
+.daycard__label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .7rem;
+  letter-spacing: .18em;
+  color: var(--ash);
+  text-transform: lowercase;
+}
+.daycard__value {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: .02em;
+}
+.daycard__value sup {
+  font-size: .55rem;
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  letter-spacing: .14em;
+  color: var(--ash);
+  vertical-align: top;
+  margin-left: .15em;
+}
+.daycard__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .05rem;
+}
+.menhir__body {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  min-width: 0;
+}
+.faction__pipwrap {
+  display: grid;
+  gap: .2rem;
+  justify-items: center;
+}
+.faction__value {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1rem;
+  color: var(--ink);
+  letter-spacing: .04em;
+}
+.stepper {
+  width: 36px; height: 36px; min-height: 36px;
+  display: grid; place-items: center;
+  background: transparent;
+  border: 1px solid var(--ink-faint);
+  border-radius: 50%;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.stepper:hover { color: var(--blood); border-color: var(--blood); }
+.stepper:active { background: rgba(122,26,23,.08); }
+
+/* Time of day — sun/moon track */
+.timetrack {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .35rem;
+  margin: 0 0 1.2rem;
+}
+.timetrack__seg {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--ink-faint);
+  padding: .5rem .15rem .55rem;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink-faint);
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+  text-align: center;
+  position: relative;
+  transition: color .15s, border-color .15s;
+}
+.timetrack__glyph {
+  display: block;
+  font-size: 1.4rem;
+  line-height: 1;
+  margin-bottom: .35rem;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  color: var(--gold-deep);
+  transition: color .15s, transform .2s;
+}
+.timetrack__seg[aria-pressed="true"] {
+  color: var(--blood);
+  border-color: var(--blood);
+}
+.timetrack__seg[aria-pressed="true"] .timetrack__glyph {
+  color: var(--blood);
+  transform: translateY(-1px);
+}
+
+/* Menhirs */
+.menhirs {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 .25rem;
+  display: flex;
+  flex-direction: column;
+}
+.menhir {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: .65rem;
+  padding: .7rem 0;
+  border-bottom: 1px dashed rgba(122, 90, 40, .35);
+}
+.menhir:last-child { border-bottom: none; }
+.menhir__mark {
+  width: 18px; height: 18px;
+  border: 1px solid var(--ink-soft);
+  background: transparent;
+  display: grid; place-items: center;
+  cursor: pointer;
+  color: var(--blood);
+  font-family: 'IM Fell English Local', serif;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  border-radius: 1px;
+  transition: background .15s, border-color .15s;
+}
+.menhir[data-state="lit"] .menhir__mark {
+  background: var(--blood);
+  border-color: var(--blood);
+  color: var(--vellum-hi);
+}
+.menhir[data-state="extinguished"] .menhir__mark {
+  background: var(--ash);
+  border-color: var(--ash);
+  color: var(--vellum-hi);
+}
+.menhir__name {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  word-break: break-word;
+}
+.menhir[data-state="extinguished"] .menhir__name {
+  color: var(--ash);
+  text-decoration: line-through;
+  text-decoration-color: rgba(106,85,56,.7);
+}
+.menhir__state {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .16em;
+  color: var(--ash);
+  text-transform: lowercase;
+}
+.menhir[data-state="lit"] .menhir__state { color: var(--blood); }
+.menhir__del {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: .25rem .35rem;
+  min-height: 32px;
+  min-width: 32px;
+  transition: color .15s;
+}
+.menhir__del:hover { color: var(--blood); }
+
+/* =========================================================================
+   Journal — quests + secrets
+   ========================================================================= */
+
+.quests { list-style: none; padding: 0; margin: 0; }
+.quest {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: .65rem;
+  padding: .6rem 0;
+  align-items: start;
+  border-bottom: 1px dashed rgba(122, 90, 40, .35);
+}
+.quest:last-child { border-bottom: none; }
+.quest__check {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border: 1px solid var(--ink-soft);
+  background: var(--vellum-hi);
+  cursor: pointer;
+  padding: 0;
+  font-family: 'IM Fell English Local', serif;
+  color: var(--blood);
+  font-size: 1.15rem;
+  line-height: .9;
+  display: grid; place-items: center;
+  border-radius: 1px;
+}
+.quest__body {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  min-width: 0;
+}
+.quest__code {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .18em;
+  color: var(--gold-deep);
+  text-transform: lowercase;
+}
+.quest__title {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  word-break: break-word;
+}
+.quest[data-done="true"] .quest__title {
+  color: var(--ash);
+  text-decoration: line-through;
+  text-decoration-color: rgba(106,85,56,.7);
+}
+.quest__del {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: .25rem .35rem;
+  min-height: 32px;
+  min-width: 32px;
+  transition: color .15s;
+}
+.quest__del:hover { color: var(--blood); }
+
+/* Secrets — a clutch of numbered chips */
+.secrets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-top: .25rem;
+}
+.secret {
+  font-family: 'IM Fell English Local', serif;
+  font-size: 1rem;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 .5rem;
+  border: 1px solid var(--gold-deep);
+  background: linear-gradient(180deg, rgba(212,179,92,.18), rgba(168,133,63,.05));
+  color: var(--ink);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  cursor: pointer;
+  letter-spacing: .04em;
+  position: relative;
+}
+.secret::after {
+  content: "✕";
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 18px; height: 18px;
+  font-size: .65rem;
+  background: var(--blood);
+  color: var(--vellum-hi);
+  border-radius: 50%;
+  display: grid; place-items: center;
+  opacity: 0;
+  transition: opacity .15s;
+  font-family: Georgia, serif;
+}
+.secret:hover::after, .secret:focus-visible::after { opacity: 1; }
+
+/* =========================================================================
+   Diplomacy — faction tracks
+   ========================================================================= */
+
+.factions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+.faction {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .25rem .5rem;
+  padding: .25rem 0 .55rem;
+  border-bottom: 1px solid rgba(122, 90, 40, .25);
+}
+.faction__name {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+.faction__del {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 .25rem;
+  min-height: 32px;
+}
+.faction__del:hover { color: var(--blood); }
+.faction__track {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .25rem;
+}
+.faction__pips {
+  display: flex;
+  gap: 3px;
+  justify-content: space-between;
+  padding: 0 .25rem;
+}
+.faction__pip {
+  width: 14px; height: 14px;
+  border: 1px solid var(--ink-soft);
+  border-radius: 50%;
+  background: var(--vellum-hi);
+  cursor: pointer;
+  padding: 0;
+  transition: background .12s, border-color .12s;
+}
+.faction__pip[data-filled="true"] {
+  background: var(--blood);
+  border-color: var(--blood-deep);
+}
+.faction__pip[data-pivot="true"] {
+  outline: 1px solid var(--gold-bright);
+  outline-offset: 1px;
+}
+
+/* =========================================================================
+   Tabs — gilded ribbon
+   ========================================================================= */
+
+.tabs {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.4), transparent 14%),
+    linear-gradient(180deg, #1c0c0a 0%, #0a0405 100%);
+  border-top: 1px solid var(--gold-deep);
+  padding: .2rem max(.3rem, env(safe-area-inset-left)) max(.45rem, env(safe-area-inset-bottom)) max(.3rem, env(safe-area-inset-right));
+}
+.tabs::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: .55;
+}
+.tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--vellum-lo);
+  font: inherit;
+  cursor: pointer;
+  min-height: 56px;
+  padding: .35rem .2rem .3rem;
+  display: grid;
+  place-items: center;
+  gap: .15rem;
+  border-radius: 2px;
+  position: relative;
+  transition: color .15s;
+}
+.tab__glyph {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--gold-deep);
+  transition: color .15s, text-shadow .15s;
+}
+.tab__name {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .6rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+}
+.tab[aria-selected="true"] {
+  color: var(--vellum-hi);
+}
+.tab[aria-selected="true"] .tab__glyph {
+  color: var(--gold-bright);
+  text-shadow: 0 0 12px rgba(212,179,92,.5), 0 0 2px rgba(212,179,92,.7);
+}
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22%; right: 22%;
+  height: 2px;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px rgba(212,179,92,.65);
+}
+
+/* =========================================================================
+   Empty states
+   ========================================================================= */
+
+.hush {
+  text-align: center;
+  padding: 1.6rem 1rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+.hush::before {
+  content: "✦";
+  display: block;
+  font-style: normal;
+  color: var(--gold-deep);
+  font-size: 1.2rem;
+  margin-bottom: .35rem;
+}
+
+/* =========================================================================
+   Dialogs — wax-sealed prompts
+   ========================================================================= */
+
+/* iOS Safari refuses transform-based centering on showModal()'d <dialog>.
+   The recipe is inset:0 + margin:auto + an explicit width and height:max-content. */
+.prompt {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(360px, calc(100vw - 2.5rem));
+  height: max-content;
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(122,90,40,.18), transparent 35%),
+    linear-gradient(180deg, var(--vellum-hi), var(--vellum-lo));
+  border: 1px solid var(--gold-deep);
+  box-shadow:
+    inset 0 0 0 3px rgba(232,220,192,.7),
+    0 24px 50px rgba(0,0,0,.6);
+  padding: 0;
+  color: var(--ink);
+}
+.prompt::backdrop {
+  background: radial-gradient(circle at 50% 40%, rgba(15,8,5,.86), rgba(0,0,0,.94));
+  backdrop-filter: blur(2px);
+}
+.prompt__card {
+  margin: 0;
+  padding: 1.4rem 1.25rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  cursor: default;
+}
+.prompt__title {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.3rem;
+  margin: 0;
+  color: var(--ink);
+}
+.prompt__title::first-letter {
+  font-size: 1.4em;
+  color: var(--blood);
+}
+.prompt__body {
+  margin: 0;
+  font-size: .95rem;
+  color: var(--ink-soft);
+}
+.prompt__field {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.prompt__label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .7rem;
+  letter-spacing: .18em;
+  color: var(--ash);
+  text-transform: lowercase;
+}
+.prompt__field input {
+  font: inherit;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--ink-soft);
+  padding: .35rem 0 .3rem;
+  color: var(--ink);
+  outline: none;
+  border-radius: 0;
+  -webkit-appearance: none;
+}
+.prompt__field input:focus { border-bottom-color: var(--blood); }
+.prompt__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-top: .3rem;
+}
+
+/* =========================================================================
+   Helpers
+   ========================================================================= */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.spacer { flex: 1; }
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.divider {
+  border: 0;
+  height: 1px;
+  margin: 1.2rem 0;
+  background: linear-gradient(90deg, transparent, rgba(122,90,40,.55) 30%, rgba(122,90,40,.55) 70%, transparent);
+}
+
+.hidden { display: none !important; }
+
+/* =========================================================================
+   Estados — Hoja de Estados de Reyes de la Perdición
+   ========================================================================= */
+
+.status-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .65rem;
+  align-items: end;
+  margin: .25rem 0 1rem;
+}
+.status-search {
+  width: 100%;
+  font: inherit;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.05rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--ink-soft);
+  padding: .35rem .25rem .3rem 0;
+  color: var(--ink);
+  outline: none;
+  border-radius: 0;
+  -webkit-appearance: none;
+}
+.status-search:focus { border-bottom-color: var(--blood); }
+.status-search::placeholder { color: var(--ink-faint); font-style: italic; }
+.status-search::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+.status-onlyactive {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--ink-faint);
+  color: var(--ink-soft);
+  font: inherit;
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .72rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+  padding: .35rem .65rem;
+  border-radius: 2px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.status-onlyactive::before {
+  content: "○ ";
+  color: var(--ink-faint);
+}
+.status-onlyactive[aria-pressed="true"] {
+  border-color: var(--blood);
+  color: var(--blood);
+  background: rgba(122,26,23,.06);
+}
+.status-onlyactive[aria-pressed="true"]::before {
+  content: "● ";
+  color: var(--blood);
+}
+
+/* Alphabetical illuminated initial */
+.alpha {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: .7rem;
+  margin: 1.15rem 0 .35rem;
+}
+.alpha:first-of-type { margin-top: .5rem; }
+.alpha__letter {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.55rem;
+  color: var(--blood);
+  line-height: 1;
+  font-weight: 400;
+  text-shadow: 0 1px 0 rgba(42,20,8,.2);
+}
+.alpha__rule {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-deep), transparent);
+  opacity: .8;
+}
+
+/* A status row */
+.status {
+  padding: .55rem 0 .65rem;
+  border-bottom: 1px dashed rgba(122, 90, 40, .3);
+}
+.status:last-of-type { border-bottom: none; }
+.status__head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .35rem;
+}
+.status__name {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.02rem;
+  color: var(--ink);
+  word-break: break-word;
+}
+.status[data-active="true"] .status__name { color: var(--blood); }
+.status__value {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .68rem;
+  letter-spacing: .12em;
+  color: var(--ash);
+}
+.status[data-active="true"] .status__value { color: var(--blood); }
+
+.status__track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.status__pip {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  background: var(--vellum-hi);
+  border: 1px solid var(--ink-soft);
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  transition: background .12s, border-color .12s, transform .08s;
+}
+.status__pip:hover { border-color: var(--blood); }
+.status__pip:active { transform: scale(.9); }
+.status__pip[data-filled="true"] {
+  background: var(--blood);
+  border-color: var(--blood-deep);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.18);
+}
+
+/* iOS tap highlight off */
+button, [role="tab"], .menhir__mark, .quest__check, .secret, .faction__pip {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

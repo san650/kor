@@ -1,0 +1,20 @@
+{
+  "name": "Compañero KOR",
+  "short_name": "KOR",
+  "description": "Un grimorio compañero para Tainted Grail: Reyes de la Perdición — menhires, diario, diplomacia y la Hoja de Estados al alcance de la mano.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15090a",
+  "theme_color": "#15090a",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+/* Self-hosted IM Fell family (Igino Marini, OFL). Source files mirrored from
+   Google Fonts so the PWA works offline on first launch from the home screen. */
+
+@font-face {
+  font-family: 'IM Fell English Local';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(im-fell-english-400.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IM Fell English Local';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(im-fell-english-400i.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'IM Fell DW Pica SC Local';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(im-fell-dw-pica-sc-400.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* For body copy, fall back to system serifs (Iowan Old Style on iOS, Hoefler
+   Text on macOS, Georgia elsewhere). They harmonize with IM Fell display. */
