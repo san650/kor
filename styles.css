@@ -544,6 +544,30 @@ body {
 }
 .quest__del:hover { color: var(--blood); }
 
+/* Notas — apuntes al margen */
+.notes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.note {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .65rem;
+  padding: .55rem 0;
+  align-items: start;
+  border-bottom: 1px dashed rgba(122, 90, 40, .35);
+}
+.note:last-child { border-bottom: none; }
+.note__text {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.02rem;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
 /* Secrets — a clutch of numbered chips */
 .secrets {
   display: flex;
@@ -970,27 +994,440 @@ body {
 .status__track {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
 }
 .status__pip {
   appearance: none;
-  width: 16px;
-  height: 16px;
-  min-height: 16px;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
   padding: 0;
   background: var(--vellum-hi);
   border: 1px solid var(--ink-soft);
-  border-radius: 50%;
+  border-radius: 3px;
   cursor: pointer;
   position: relative;
-  transition: background .12s, border-color .12s, transform .08s;
+  display: grid;
+  place-items: center;
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--ink-faint);
+  transition: background .12s, border-color .12s, color .12s, transform .08s;
+}
+.status__track[data-numbered="false"] .status__pip {
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
 }
 .status__pip:hover { border-color: var(--blood); }
-.status__pip:active { transform: scale(.9); }
+.status__pip:active { transform: scale(.92); }
 .status__pip[data-filled="true"] {
   background: var(--blood);
   border-color: var(--blood-deep);
+  color: var(--vellum-hi);
   box-shadow: inset 0 1px 1px rgba(255,255,255,.18);
+}
+
+/* =========================================================================
+   Drawer — the brass-knob compartment over the tab band
+   ========================================================================= */
+
+.drawer-knob {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 6;
+}
+.drawer-knob__handle {
+  display: block;
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold-deep));
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.22);
+  transition: width .2s, height .2s, background .2s;
+}
+.drawer-knob[aria-expanded="true"] .drawer-knob__handle {
+  width: 30px;
+  background: linear-gradient(180deg, var(--blood-bright), var(--blood-deep));
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  background: radial-gradient(circle at 50% 60%, rgba(15,8,5,.55), rgba(0,0,0,.82));
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.drawer-backdrop[data-open="true"] { opacity: 1; }
+
+/* The drawer panel sits above the tab band, sliding up from its top edge. */
+.drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  z-index: 9;
+  width: var(--col);
+  margin: 0 auto;
+  padding: .35rem 1rem 1.1rem;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(122,90,40,.20), transparent 35%),
+    linear-gradient(180deg, var(--vellum-hi), var(--vellum) 65%, var(--vellum-lo));
+  border: 1px solid var(--gold-deep);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  box-shadow:
+    inset 0 0 0 2px rgba(232,220,192,.65),
+    0 -16px 36px rgba(0,0,0,.55);
+  transform: translateY(110%);
+  opacity: 0;
+  transition: transform .26s cubic-bezier(.2,.7,.2,1), opacity .22s ease;
+  max-height: calc(100dvh - 160px - env(safe-area-inset-top, 0px));
+  display: flex;
+  flex-direction: column;
+}
+.drawer[data-open="true"] {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.drawer__rail {
+  display: grid;
+  place-items: center;
+  padding: .15rem 0 .35rem;
+}
+.drawer__rail-handle {
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(122,90,40,.5);
+}
+
+.drawer__head {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: .35rem;
+  padding: .15rem 0 .55rem;
+  border-bottom: 1px solid rgba(122,90,40,.35);
+  position: relative;
+}
+.drawer__head::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: .55;
+}
+.drawer__title {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.2rem;
+  margin: 0;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: .01em;
+}
+.drawer__title::first-letter {
+  color: var(--blood);
+  font-size: 1.25em;
+}
+.drawer__version {
+  display: inline-block;
+  margin-left: .45rem;
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .55rem;
+  letter-spacing: .12em;
+  color: var(--ink-faint);
+  text-transform: lowercase;
+  vertical-align: middle;
+  opacity: .7;
+}
+.drawer__back,
+.drawer__close {
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font: inherit;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.3rem;
+  line-height: 1;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: color .15s, border-color .15s;
+}
+.drawer__back:hover,
+.drawer__close:hover {
+  color: var(--blood);
+  border-color: var(--ink-faint);
+}
+.drawer__back {
+  font-size: 1.55rem;
+  justify-self: start;
+}
+.drawer__close { justify-self: end; }
+/* Empty placeholder when no back arrow */
+.drawer__back[hidden] + .drawer__title {
+  /* Keep title centered via implicit equal margins from auto cols */
+}
+
+.drawer__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: .25rem 0 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.drawer__items {
+  list-style: none;
+  padding: 0;
+  margin: .25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.drawer__item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: .85rem;
+  padding: .8rem .9rem;
+  background: linear-gradient(180deg, rgba(232,220,192,.4), rgba(212,179,92,.08));
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background .15s, border-color .15s, color .15s, transform .08s;
+}
+.drawer__item:hover {
+  background: linear-gradient(180deg, rgba(212,179,92,.25), rgba(212,179,92,.1));
+  border-color: var(--ink-soft);
+}
+.drawer__item:active { transform: translateY(1px); }
+.drawer__item--danger { color: var(--blood); }
+.drawer__item--danger:hover {
+  border-color: var(--blood);
+  background: rgba(122,26,23,.06);
+}
+.drawer__item-glyph {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.55rem;
+  line-height: 1;
+  color: var(--gold-deep);
+  text-align: center;
+}
+.drawer__item--danger .drawer__item-glyph { color: var(--blood); }
+.drawer__item-body {
+  display: flex;
+  flex-direction: column;
+  gap: .12rem;
+  min-width: 0;
+}
+.drawer__item-title {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.05rem;
+}
+.drawer__item-sub {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  color: var(--ash);
+  text-transform: lowercase;
+}
+
+/* Log mode inside the drawer */
+.drawer__log {
+  list-style: none;
+  padding: 0;
+  margin: .25rem 0 .5rem;
+  display: flex;
+  flex-direction: column;
+}
+.drawer__log-entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .65rem;
+  padding: .55rem 0;
+  border-bottom: 1px dashed rgba(122,90,40,.3);
+}
+.drawer__log-entry:last-child { border-bottom: none; }
+.drawer__log-time {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .68rem;
+  letter-spacing: .12em;
+  color: var(--gold-deep);
+  white-space: nowrap;
+  padding-top: .1rem;
+  min-width: 3rem;
+}
+.drawer__log-text {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: .98rem;
+  color: var(--ink);
+  word-break: break-word;
+}
+.drawer__log-text em {
+  font-style: italic;
+  color: var(--blood);
+  font-weight: 400;
+}
+
+/* Session sheet — formulario de "Hoja de juego" dentro del drawer */
+.sessionf {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding-bottom: 1rem;
+}
+.sessionf__group {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.sessionf__group-title {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: lowercase;
+  color: var(--ash);
+  margin: .35rem 0 .15rem;
+  border-bottom: 1px dashed rgba(122,90,40,.35);
+  padding-bottom: .25rem;
+}
+.sessionf__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.sessionf__field {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  min-width: 0;
+}
+.sessionf__field--block { grid-column: 1 / -1; }
+.sessionf__label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+  color: var(--ash);
+}
+.sessionf__input,
+.sessionf__textarea {
+  font: inherit;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1rem;
+  background: rgba(232,220,192,.5);
+  border: none;
+  border-bottom: 1.5px solid var(--ink-soft);
+  padding: .35rem .3rem .3rem;
+  color: var(--ink);
+  outline: none;
+  border-radius: 0;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+}
+.sessionf__textarea {
+  resize: vertical;
+  min-height: 3.5rem;
+  line-height: 1.4;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 2px;
+  padding: .4rem .45rem;
+  background: rgba(232,220,192,.6);
+}
+.sessionf__input:focus { border-bottom-color: var(--blood); }
+.sessionf__textarea:focus { border-color: var(--blood); }
+
+.sessionf__players {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.sessionf__player {
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  background: rgba(232,220,192,.3);
+  padding: 0 .65rem;
+}
+.sessionf__player[open] { background: rgba(232,220,192,.55); }
+.sessionf__summary {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  padding: .55rem 0;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.sessionf__summary::-webkit-details-marker { display: none; }
+.sessionf__summary-mark {
+  display: inline-block;
+  color: var(--gold-deep);
+  font-size: .9rem;
+  transition: transform .15s;
+  width: 1ch;
+}
+.sessionf__player[open] .sessionf__summary-mark { transform: rotate(90deg); }
+.sessionf__player-body {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  padding: 0 0 .8rem;
+}
+.sessionf__skills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .35rem;
+}
+.sessionf__resources {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .35rem;
+}
+.sessionf__res {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  min-width: 0;
+}
+.sessionf__res .sessionf__input {
+  text-align: center;
+  font-size: .95rem;
 }
 
 /* iOS tap highlight off */

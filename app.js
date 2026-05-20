@@ -276,6 +276,70 @@ const renderExploration = (doc) => {
    Diario — misiones + secretos
    ------------------------------------------------------------------------- */
 
+const renderChecklist = ({
+  items, prefix, emptyText, addLabel,
+  promptTitle, promptLabel, promptPlaceholder,
+  removeTitle, removeBody,
+}) => {
+  const node = document.createDocumentFragment();
+  if (items.length === 0) {
+    node.append(el('p', { class: 'hush' }, emptyText));
+  } else {
+    const list = el('ul', { class: 'quests' });
+    items.forEach((it, idx) => {
+      list.append(
+        el('li', { class: 'quest', dataset: { done: it.done ? 'true' : 'false' } },
+          el('button', {
+            type: 'button',
+            class: 'quest__check',
+            'aria-label': it.done ? 'Marcar como abierta' : 'Marcar como cumplida',
+            onclick: () => store.dispatch(makeCommand(`TOGGLE_${prefix}`, {
+              id: it.id, from: !!it.done, to: !it.done,
+            })),
+          }, it.done ? '✓' : ''),
+          el('div', { class: 'quest__body' },
+            it.code ? el('div', { class: 'quest__code' }, it.code) : null,
+            el('div', { class: 'quest__title' }, it.title),
+          ),
+          el('button', {
+            type: 'button',
+            class: 'quest__del',
+            'aria-label': `Borrar ${it.title}`,
+            onclick: async () => {
+              const ok = await askConfirm({
+                title: removeTitle,
+                body: removeBody(it),
+              });
+              if (!ok) return;
+              store.dispatch(makeCommand(`REMOVE_${prefix}`, { from: it, index: idx }));
+            },
+          }, '✕'),
+        )
+      );
+    });
+    node.append(list);
+  }
+  node.append(
+    el('div', { class: 'actions' },
+      el('button', {
+        type: 'button',
+        class: 'btn btn--ink',
+        onclick: async () => {
+          const title = await askPrompt({
+            title: promptTitle,
+            label: promptLabel,
+            placeholder: promptPlaceholder,
+          });
+          if (!title) return;
+          const it = { id: newId(), title, done: false };
+          store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: items.length }));
+        },
+      }, addLabel),
+    ),
+  );
+  return node;
+};
+
 const renderJournal = (doc) => {
   const scene = el('section', { class: 'scene' });
 
@@ -283,7 +347,7 @@ const renderJournal = (doc) => {
     el('h2', { class: 'scene__title' }, 'Diario'),
     el('p',  { class: 'scene__sub'   }, 'misiones emprendidas, secretos revelados'),
     flourish(),
-    el('h3', { class: 'scene__title' }, 'Misiones'),
+    el('h3', { class: 'scene__title' }, 'Misión principal'),
   );
 
   if (doc.quests.length === 0) {
@@ -345,6 +409,112 @@ const renderJournal = (doc) => {
           store.dispatch(makeCommand('ADD_QUEST', { to: q, index: doc.quests.length }));
         },
       }, '＋ Iniciar misión'),
+    ),
+  );
+
+  scene.append(el('hr', { class: 'divider' }));
+
+  scene.append(
+    el('h3', { class: 'scene__title' }, 'Misiones secundarias'),
+    el('p',  { class: 'scene__sub'   }, 'caminos paralelos al sendero mayor'),
+  );
+  scene.append(renderChecklist({
+    items: doc.sideQuests || [],
+    prefix: 'SIDE_QUEST',
+    emptyText: 'Sin desvíos por ahora.',
+    addLabel: '＋ Añadir misión secundaria',
+    promptTitle: 'Nueva misión secundaria',
+    promptLabel: '¿Qué encargo se acepta?',
+    promptPlaceholder: 'Recuperar la espada perdida',
+    removeTitle: '¿Tachar la misión?',
+    removeBody: (it) => `«${it.title}» será arrancada del diario.`,
+  }));
+
+  scene.append(el('hr', { class: 'divider' }));
+
+  scene.append(
+    el('h3', { class: 'scene__title' }, 'Personajes importantes'),
+    el('p',  { class: 'scene__sub'   }, 'rostros que pesarán en el camino'),
+  );
+  scene.append(renderChecklist({
+    items: doc.characters || [],
+    prefix: 'CHARACTER',
+    emptyText: 'Aún no se ha cruzado nadie de nombre.',
+    addLabel: '＋ Inscribir personaje',
+    promptTitle: 'Nuevo personaje',
+    promptLabel: 'Nombre o título',
+    promptPlaceholder: 'Lady Morgaine',
+    removeTitle: '¿Olvidar a este personaje?',
+    removeBody: (it) => `«${it.title}» dejará el tomo.`,
+  }));
+
+  scene.append(el('hr', { class: 'divider' }));
+
+  scene.append(
+    el('h3', { class: 'scene__title' }, 'Localizaciones'),
+    el('p',  { class: 'scene__sub'   }, 'lugares que el pie ha pisado o desea pisar'),
+  );
+  scene.append(renderChecklist({
+    items: doc.locations || [],
+    prefix: 'LOCATION',
+    emptyText: 'Sin lugares anotados.',
+    addLabel: '＋ Anotar lugar',
+    promptTitle: 'Nuevo lugar',
+    promptLabel: 'Nombre del lugar',
+    promptPlaceholder: 'Tarn del Ermitaño',
+    removeTitle: '¿Borrar el lugar?',
+    removeBody: (it) => `«${it.title}» dejará el mapa.`,
+  }));
+
+  scene.append(el('hr', { class: 'divider' }));
+
+  scene.append(
+    el('h3', { class: 'scene__title' }, 'Notas extendidas'),
+    el('p',  { class: 'scene__sub'   }, 'apuntes al margen del tomo'),
+  );
+  const notes = doc.notes || [];
+  if (notes.length === 0) {
+    scene.append(el('p', { class: 'hush' }, 'Aún sin apuntes.'));
+  } else {
+    const list = el('ul', { class: 'notes' });
+    notes.forEach((n, idx) => {
+      list.append(
+        el('li', { class: 'note' },
+          el('div', { class: 'note__text' }, n.text),
+          el('button', {
+            type: 'button',
+            class: 'quest__del',
+            'aria-label': 'Borrar nota',
+            onclick: async () => {
+              const ok = await askConfirm({
+                title: '¿Tachar la nota?',
+                body: 'La nota se perderá.',
+              });
+              if (!ok) return;
+              store.dispatch(makeCommand('REMOVE_NOTE', { from: n, index: idx }));
+            },
+          }, '✕'),
+        )
+      );
+    });
+    scene.append(list);
+  }
+  scene.append(
+    el('div', { class: 'actions' },
+      el('button', {
+        type: 'button',
+        class: 'btn btn--ink',
+        onclick: async () => {
+          const text = await askPrompt({
+            title: 'Nueva nota',
+            label: '¿Qué se quiere recordar?',
+            placeholder: 'La hoguera ardió tres noches…',
+          });
+          if (!text) return;
+          const n = { id: newId(), text };
+          store.dispatch(makeCommand('ADD_NOTE', { to: n, index: notes.length }));
+        },
+      }, '＋ Anotar'),
     ),
   );
 
@@ -558,7 +728,7 @@ const renderStatuses = (doc) => {
   const q = stripAccents(statusSearch.trim());
   let filtered = STATUSES;
   if (q) filtered = filtered.filter((s) => stripAccents(s.name).includes(q));
-  if (statusOnlyActive) filtered = filtered.filter((s) => (active[s.id] ?? 0) > 0);
+  if (statusOnlyActive) filtered = filtered.filter((s) => (active[s.id]?.length ?? 0) > 0);
 
   if (filtered.length === 0) {
     scene.append(el('p', { class: 'hush' }, 'Nada se halla con esos signos.'));
@@ -581,42 +751,491 @@ const renderStatuses = (doc) => {
       ),
     );
     for (const s of items) {
-      scene.append(renderStatusRow(s, active[s.id] ?? 0));
+      scene.append(renderStatusRow(s, active[s.id] ?? []));
     }
   }
 
   return scene;
 };
 
-const renderStatusRow = (status, current) => {
-  const row = el('div', { class: 'status', dataset: { active: current > 0 ? 'true' : 'false' } });
+const renderStatusRow = (status, filled) => {
+  const count = filled.length;
+  const filledSet = new Set(filled);
+  const row = el('div', { class: 'status', dataset: { active: count > 0 ? 'true' : 'false' } });
 
   row.append(
     el('div', { class: 'status__head' },
       el('div', { class: 'status__name' }, status.name),
-      el('div', { class: 'status__value' }, `${current}/${status.max}`),
+      el('div', { class: 'status__value' }, `${count}/${status.max}`),
     ),
   );
 
-  const track = el('div', { class: 'status__track' });
+  const showNumbers = !status.unnumbered;
+  const track = el('div', { class: 'status__track', dataset: { numbered: showNumbers ? 'true' : 'false' } });
   for (let i = 1; i <= status.max; i++) {
+    const isFilled = filledSet.has(i);
     track.append(el('button', {
       type: 'button',
       class: 'status__pip',
-      dataset: { filled: i <= current ? 'true' : 'false' },
-      'aria-label': `${status.name}: marca ${i}`,
+      dataset: { filled: isFilled ? 'true' : 'false' },
+      'aria-label': `${status.name}: casilla ${i}${isFilled ? ' (marcada)' : ''}`,
+      'aria-pressed': isFilled ? 'true' : 'false',
       onclick: () => {
-        const from = current;
-        const to = (from === i) ? i - 1 : i;
-        if (from === to) return;
-        store.dispatch(makeCommand('SET_STATUS_VALUE', { id: status.id, from, to }));
+        store.dispatch(makeCommand('TOGGLE_STATUS_PIP', {
+          id: status.id,
+          pip: i,
+          from: isFilled,
+          to: !isFilled,
+        }));
       },
-    }));
+    }, showNumbers ? String(i) : ''));
   }
   row.append(track);
 
   return row;
 };
+
+/* -------------------------------------------------------------------------
+   Drawer — bottom-sheet de "Más opciones" + crónica de acciones
+   ------------------------------------------------------------------------- */
+
+const drawer          = $('drawer');
+const drawerBackdrop  = $('drawer-backdrop');
+const drawerKnob      = $('drawer-knob');
+const drawerBody      = $('drawer-body');
+const drawerTitleText = $('drawer-title-text');
+const drawerVersion   = $('drawer-version');
+const drawerBack      = $('drawer-back');
+const drawerClose     = $('drawer-close');
+
+let drawerOpen = false;
+let drawerMode = 'menu'; // 'menu' | 'log' | 'session'
+
+const DRAWER_TITLES = {
+  menu: 'Más opciones',
+  log: 'Crónica de acciones',
+  session: 'Hoja de juego',
+};
+
+const setDrawerMode = (mode) => {
+  drawerMode = mode;
+  drawerTitleText.textContent = DRAWER_TITLES[mode] || DRAWER_TITLES.menu;
+  drawerBack.hidden = (mode === 'menu');
+  renderDrawerBody();
+};
+
+// Ask the active service worker which cache it's serving. Lets the user
+// confirm at a glance that they're seeing the freshest deployed shell.
+const askSwVersion = () => {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then((reg) => {
+    const target = navigator.serviceWorker.controller || reg.active;
+    if (!target) return;
+    const channel = new MessageChannel();
+    channel.port1.onmessage = (e) => {
+      if (e.data?.type === 'CACHE_VERSION') {
+        drawerVersion.textContent = e.data.value;
+      }
+    };
+    target.postMessage({ type: 'GET_CACHE_VERSION' }, [channel.port2]);
+  }).catch(() => {});
+};
+
+const openDrawer = () => {
+  if (drawerOpen) return;
+  drawerOpen = true;
+  drawerKnob.setAttribute('aria-expanded', 'true');
+  setDrawerMode('menu');
+  drawer.hidden = false;
+  drawerBackdrop.hidden = false;
+  // Two RAFs so the browser commits the initial hidden→visible state before
+  // we flip the transition flag.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    drawer.dataset.open = 'true';
+    drawerBackdrop.dataset.open = 'true';
+  }));
+};
+
+const closeDrawer = () => {
+  if (!drawerOpen) return;
+  // Flush any pending text-input edit so its `change` event commits to the
+  // store before we tear the form down.
+  const a = document.activeElement;
+  if (a && drawerBody.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) {
+    a.blur();
+  }
+  drawerOpen = false;
+  drawerKnob.setAttribute('aria-expanded', 'false');
+  drawer.dataset.open = 'false';
+  drawerBackdrop.dataset.open = 'false';
+  const finish = (e) => {
+    if (e.target !== drawer) return;
+    drawer.hidden = true;
+    drawerBackdrop.hidden = true;
+    drawer.removeEventListener('transitionend', finish);
+  };
+  drawer.addEventListener('transitionend', finish);
+};
+
+const toggleDrawer = () => (drawerOpen ? closeDrawer() : openDrawer());
+
+const TAB_LABELS = {
+  exploration: 'Andanzas', journal: 'Diario', diplomacy: 'Diplomacia', statuses: 'Estados',
+};
+
+const statusName = (id) => {
+  const found = STATUSES.find((s) => s.id === id);
+  return found ? found.name : id;
+};
+
+const formatLogEntry = (cmd, doc) => {
+  const p = cmd.payload || {};
+  const findIn = (key, id) => (doc[key] || []).find((x) => x.id === id);
+  switch (cmd.type) {
+    case 'SET_DAY':
+      return `Día ${p.from} → ${p.to}`;
+    case 'SET_TIME_OF_DAY':
+      return `Momento del día: ${TIME_SEGMENTS.find((s) => s.key === p.to)?.label || p.to}`;
+    case 'SET_ACTIVE_TAB':
+      return `Abrir ${TAB_LABELS[p.to] || p.to}`;
+    case 'ADD_MENHIR':
+      return `Inscribir menhir «${p.to?.name ?? '?'}»`;
+    case 'REMOVE_MENHIR':
+      return `Tachar menhir «${p.from?.name ?? '?'}»`;
+    case 'SET_MENHIR_STATE': {
+      const m = findIn('menhirs', p.id);
+      return `Menhir${m ? ` «${m.name}»` : ''}: ${MENHIR_LABELS[p.to] || p.to}`;
+    }
+    case 'ADD_QUEST':
+      return `Iniciar misión «${p.to?.title ?? '?'}»`;
+    case 'REMOVE_QUEST':
+      return `Tachar misión «${p.from?.title ?? '?'}»`;
+    case 'TOGGLE_QUEST': {
+      const q = findIn('quests', p.id);
+      return `Misión${q ? ` «${q.title}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
+    }
+    case 'ADD_SECRET':
+      return `Secreto revelado: N.º ${p.to}`;
+    case 'REMOVE_SECRET':
+      return `Secreto olvidado: N.º ${p.from}`;
+    case 'ADD_FACTION':
+      return `Alzar estandarte «${p.to?.name ?? '?'}»`;
+    case 'REMOVE_FACTION':
+      return `Disolver estandarte «${p.from?.name ?? '?'}»`;
+    case 'SET_FACTION_VALUE': {
+      const f = findIn('factions', p.id);
+      const fmt = (n) => (n > 0 ? `+${n}` : `${n}`);
+      return `Estandarte${f ? ` «${f.name}»` : ''}: ${fmt(p.from)} → ${fmt(p.to)}`;
+    }
+    case 'TOGGLE_STATUS_PIP':
+      return `Estado «${statusName(p.id)}»: casilla ${p.pip} ${p.to ? 'marcada' : 'borrada'}`;
+    case 'ADD_SIDE_QUEST':    return `Añadir misión secundaria «${p.to?.title ?? '?'}»`;
+    case 'REMOVE_SIDE_QUEST': return `Tachar misión secundaria «${p.from?.title ?? '?'}»`;
+    case 'TOGGLE_SIDE_QUEST': {
+      const it = findIn('sideQuests', p.id);
+      return `Misión secundaria${it ? ` «${it.title}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
+    }
+    case 'ADD_CHARACTER':     return `Inscribir personaje «${p.to?.title ?? '?'}»`;
+    case 'REMOVE_CHARACTER':  return `Olvidar personaje «${p.from?.title ?? '?'}»`;
+    case 'TOGGLE_CHARACTER': {
+      const it = findIn('characters', p.id);
+      return `Personaje${it ? ` «${it.title}»` : ''}: ${p.to ? 'cumplido' : 'reabierto'}`;
+    }
+    case 'ADD_LOCATION':      return `Anotar lugar «${p.to?.title ?? '?'}»`;
+    case 'REMOVE_LOCATION':   return `Borrar lugar «${p.from?.title ?? '?'}»`;
+    case 'TOGGLE_LOCATION': {
+      const it = findIn('locations', p.id);
+      return `Lugar${it ? ` «${it.title}»` : ''}: ${p.to ? 'visitado' : 'pendiente'}`;
+    }
+    case 'ADD_NOTE':
+      return `Nota añadida: «${(p.to?.text || '').slice(0, 40)}${(p.to?.text?.length ?? 0) > 40 ? '…' : ''}»`;
+    case 'REMOVE_NOTE':
+      return `Nota borrada: «${(p.from?.text || '').slice(0, 40)}${(p.from?.text?.length ?? 0) > 40 ? '…' : ''}»`;
+    case 'SET_SESSION_FIELD':
+      return `Hoja de juego — ${describeSessionPath(p.path)}`;
+    default:
+      return cmd.type;
+  }
+};
+
+const SESSION_LABELS = {
+  timeTokens: 'Fichas de Tiempo / Misión',
+  companion: 'Compañero',
+  guardians: 'Guardianes',
+  guideStone: 'Roca Guía',
+  perditionKing: 'Rey de la Perdición',
+  notes: 'Notas',
+  name: 'nombre',
+  location: 'localización',
+  food: 'comida',
+  wealth: 'riqueza',
+  exp: 'EXP',
+  magic: 'magia',
+  items: 'objetos / secretos',
+};
+
+const describeSessionPath = (path) => {
+  if (!Array.isArray(path) || path.length === 0) return '';
+  if (path[0] === 'players') {
+    const idx = path[1];
+    const sub = path[2];
+    if (sub === 'skills') return `Jugador ${idx + 1} — habilidad ${path[3] + 1}`;
+    return `Jugador ${idx + 1} — ${SESSION_LABELS[sub] || sub}`;
+  }
+  return path.map((k) => SESSION_LABELS[k] || k).join(' — ');
+};
+
+const formatLogTime = (t) => {
+  if (!t) return '';
+  const d = new Date(t);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  return sameDay ? `${hh}:${mm}` : `${d.getDate()}/${d.getMonth() + 1} ${hh}:${mm}`;
+};
+
+const renderDrawerMenu = () => {
+  const list = el('ul', { class: 'drawer__items' });
+  list.append(
+    el('li', {},
+      el('button', {
+        type: 'button',
+        class: 'drawer__item',
+        onclick: () => setDrawerMode('session'),
+      },
+        el('span', { class: 'drawer__item-glyph' }, '⚑'),
+        el('span', { class: 'drawer__item-body' },
+          el('span', { class: 'drawer__item-title' }, 'Hoja de juego'),
+          el('span', { class: 'drawer__item-sub' }, 'estado entre sesiones'),
+        ),
+      ),
+    ),
+    el('li', {},
+      el('button', {
+        type: 'button',
+        class: 'drawer__item',
+        onclick: () => setDrawerMode('log'),
+      },
+        el('span', { class: 'drawer__item-glyph' }, '❦'),
+        el('span', { class: 'drawer__item-body' },
+          el('span', { class: 'drawer__item-title' }, 'Crónica de acciones'),
+          el('span', { class: 'drawer__item-sub' }, 'lo escrito en el tomo'),
+        ),
+      ),
+    ),
+    el('li', {},
+      el('button', {
+        type: 'button',
+        class: 'drawer__item drawer__item--danger',
+        onclick: async () => {
+          const ok = await askConfirm({
+            title: '¿Comenzar de nuevo?',
+            body: 'Todo lo escrito en el tomo se perderá: días, menhires, misiones, secretos, estandartes, estados y la hoja de juego.',
+            confirmLabel: 'Borrar todo',
+          });
+          if (!ok) return;
+          store.reset();
+          closeDrawer();
+        },
+      },
+        el('span', { class: 'drawer__item-glyph' }, '↻'),
+        el('span', { class: 'drawer__item-body' },
+          el('span', { class: 'drawer__item-title' }, 'Comenzar de nuevo'),
+          el('span', { class: 'drawer__item-sub' }, 'borrar el tomo y abrir página en blanco'),
+        ),
+      ),
+    ),
+  );
+  return list;
+};
+
+/* -------------------------------------------------------------------------
+   Hoja de juego — form de estado entre sesiones
+   ------------------------------------------------------------------------- */
+
+const getSessionAt = (path) => {
+  let node = store.state.doc.session;
+  for (const k of path) {
+    if (node == null) return '';
+    node = node[k];
+  }
+  return node ?? '';
+};
+
+const sessionInput = ({ path, placeholder = '', label, autocapitalize = 'sentences' }) => {
+  const initial = getSessionAt(path);
+  return el('input', {
+    type: 'text',
+    class: 'sessionf__input',
+    value: initial,
+    placeholder,
+    'aria-label': label || path.join('.'),
+    autocomplete: 'off',
+    autocapitalize,
+    spellcheck: 'false',
+    dataset: { sessionPath: path.join('.') },
+    onchange: (e) => {
+      const from = getSessionAt(path);
+      const to = e.target.value;
+      if (from === to) return;
+      store.dispatch(makeCommand('SET_SESSION_FIELD', { path, from, to }));
+    },
+  });
+};
+
+const sessionTextarea = ({ path, placeholder = '', label, rows = 3 }) => {
+  const initial = getSessionAt(path);
+  return el('textarea', {
+    class: 'sessionf__textarea',
+    placeholder,
+    'aria-label': label || path.join('.'),
+    autocapitalize: 'sentences',
+    spellcheck: 'false',
+    rows,
+    dataset: { sessionPath: path.join('.') },
+    onchange: (e) => {
+      const from = getSessionAt(path);
+      const to = e.target.value;
+      if (from === to) return;
+      store.dispatch(makeCommand('SET_SESSION_FIELD', { path, from, to }));
+    },
+  }, initial);
+};
+
+const sessionField = ({ label, path, ...opts }) =>
+  el('label', { class: 'sessionf__field' },
+    el('span', { class: 'sessionf__label' }, label),
+    sessionInput({ path, label, ...opts }),
+  );
+
+const sessionTextareaField = ({ label, path, ...opts }) =>
+  el('label', { class: 'sessionf__field sessionf__field--block' },
+    el('span', { class: 'sessionf__label' }, label),
+    sessionTextarea({ path, label, ...opts }),
+  );
+
+const renderPlayerBlock = (idx) => {
+  const summary = el('summary', { class: 'sessionf__summary' },
+    el('span', { class: 'sessionf__summary-mark' }, '▸'),
+    el('span', null, `Jugador ${idx + 1}`),
+  );
+  const block = el('details', { class: 'sessionf__player' }, summary);
+
+  block.append(
+    el('div', { class: 'sessionf__player-body' },
+      el('div', { class: 'sessionf__pair' },
+        sessionField({ label: 'Nombre',       path: ['players', idx, 'name'],     placeholder: 'Aedric',           autocapitalize: 'words' }),
+        sessionField({ label: 'Localización', path: ['players', idx, 'location'], placeholder: 'Cuagh Eithne',     autocapitalize: 'words' }),
+      ),
+      el('div', { class: 'sessionf__group-title' }, 'Habilidades'),
+      el('div', { class: 'sessionf__skills' },
+        ...Array.from({ length: 6 }, (_, i) => sessionInput({
+          path: ['players', idx, 'skills', i],
+          placeholder: `Habilidad ${i + 1}`,
+          label: `Jugador ${idx + 1}, habilidad ${i + 1}`,
+          autocapitalize: 'sentences',
+        })),
+      ),
+      el('div', { class: 'sessionf__resources' },
+        el('label', { class: 'sessionf__res' },
+          el('span', { class: 'sessionf__label' }, 'Comida'),
+          sessionInput({ path: ['players', idx, 'food'],   placeholder: '0', label: `Jugador ${idx + 1}, comida`,   autocapitalize: 'none' }),
+        ),
+        el('label', { class: 'sessionf__res' },
+          el('span', { class: 'sessionf__label' }, 'Riqueza'),
+          sessionInput({ path: ['players', idx, 'wealth'], placeholder: '0', label: `Jugador ${idx + 1}, riqueza`,  autocapitalize: 'none' }),
+        ),
+        el('label', { class: 'sessionf__res' },
+          el('span', { class: 'sessionf__label' }, 'EXP'),
+          sessionInput({ path: ['players', idx, 'exp'],    placeholder: '0', label: `Jugador ${idx + 1}, EXP`,      autocapitalize: 'none' }),
+        ),
+        el('label', { class: 'sessionf__res' },
+          el('span', { class: 'sessionf__label' }, 'Magia'),
+          sessionInput({ path: ['players', idx, 'magic'],  placeholder: '0', label: `Jugador ${idx + 1}, magia`,    autocapitalize: 'none' }),
+        ),
+      ),
+      sessionTextareaField({
+        label: 'Objetos / Secretos',
+        path: ['players', idx, 'items'],
+        placeholder: 'Una bolsa de monedas, una llave oxidada…',
+        rows: 3,
+      }),
+    ),
+  );
+  return block;
+};
+
+const renderSessionForm = () => {
+  const form = el('form', { class: 'sessionf', onsubmit: (e) => e.preventDefault() });
+
+  form.append(
+    el('div', { class: 'sessionf__group' },
+      el('div', { class: 'sessionf__group-title' }, 'Estado compartido'),
+      sessionField({ label: 'Fichas de Tiempo / Misión', path: ['timeTokens'], placeholder: '0', autocapitalize: 'none' }),
+      el('div', { class: 'sessionf__pair' },
+        sessionField({ label: 'Compañero',  path: ['companion', 'name'],     placeholder: 'Nombre', autocapitalize: 'words' }),
+        sessionField({ label: 'Localiz.',   path: ['companion', 'location'], placeholder: 'Lugar',  autocapitalize: 'words' }),
+      ),
+      el('div', { class: 'sessionf__pair' },
+        sessionField({ label: 'Guardianes', path: ['guardians', 'name'],     placeholder: 'Nombre', autocapitalize: 'words' }),
+        sessionField({ label: 'Localiz.',   path: ['guardians', 'location'], placeholder: 'Lugar',  autocapitalize: 'words' }),
+      ),
+      sessionField({ label: 'Roca Guía — localización',          path: ['guideStone',    'location'], placeholder: 'Lugar', autocapitalize: 'words' }),
+      sessionField({ label: 'Rey de la Perdición — localización', path: ['perditionKing', 'location'], placeholder: 'Lugar', autocapitalize: 'words' }),
+      sessionTextareaField({
+        label: 'Notas',
+        path: ['notes'],
+        placeholder: 'Apuntes para la próxima sesión…',
+        rows: 4,
+      }),
+    ),
+    el('div', { class: 'sessionf__players' },
+      el('div', { class: 'sessionf__group-title' }, 'Jugadores'),
+      ...Array.from({ length: 4 }, (_, i) => renderPlayerBlock(i)),
+    ),
+  );
+
+  return form;
+};
+
+const renderDrawerLog = () => {
+  const doc = store.state.doc;
+  const past = store.history.past || [];
+  if (past.length === 0) {
+    return el('p', { class: 'hush' }, 'Nada se ha escrito todavía.');
+  }
+  const list = el('ul', { class: 'drawer__log' });
+  for (let i = past.length - 1; i >= 0; i--) {
+    const cmd = past[i];
+    list.append(
+      el('li', { class: 'drawer__log-entry' },
+        el('span', { class: 'drawer__log-time' }, formatLogTime(cmd.t)),
+        el('span', { class: 'drawer__log-text' }, formatLogEntry(cmd, doc)),
+      ),
+    );
+  }
+  return list;
+};
+
+const renderDrawerBody = () => {
+  let content;
+  if (drawerMode === 'log')          content = renderDrawerLog();
+  else if (drawerMode === 'session') content = renderSessionForm();
+  else                               content = renderDrawerMenu();
+  drawerBody.replaceChildren(content);
+};
+
+drawerKnob.addEventListener('click', toggleDrawer);
+drawerClose.addEventListener('click', closeDrawer);
+drawerBackdrop.addEventListener('click', closeDrawer);
+drawerBack.addEventListener('click', () => setDrawerMode('menu'));
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && drawerOpen) {
+    e.preventDefault();
+    closeDrawer();
+  }
+});
 
 /* -------------------------------------------------------------------------
    Orquestación del render
@@ -664,6 +1283,10 @@ const render = () => {
   else                                view.append(renderStatuses(doc));
   undoBtn.disabled = !store.canUndo();
   redoBtn.disabled = !store.canRedo();
+  // Only the log view needs to track live state — the menu is static, and
+  // the session form is uncontrolled (rebuilding it would steal focus and
+  // wipe in-progress typing).
+  if (drawerOpen && drawerMode === 'log') renderDrawerBody();
   restoreFocus(snap);
 };
 
@@ -706,6 +1329,7 @@ const start = async () => {
   await store.ready;
   store.subscribe(render);
   render();
+  askSwVersion();
 };
 
 start();

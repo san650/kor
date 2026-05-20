@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>Compañero KOR</title>
-  <meta name="description" content="Un grimorio compañero para Tainted Grail: Reyes de la Perdición — menhires, diario, diplomacia y la Hoja de Estados al alcance de la mano." />
+  <title>KOR Companion</title>
+  <meta name="description" content="Tainted Grail: Reyes de la Perdición — Companion" />
   <meta name="theme-color" content="#15090a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -57,8 +57,7 @@
       </svg>
     </div>
     <div class="tome-head__title">
-      <h1>Compañero KOR</h1>
-      <p class="tome-head__sub">un grimorio de los reyes de la perdición</p>
+      <h1>KOR Companion</h1>
     </div>
     <div class="tome-head__actions">
       <button id="undo" class="iconbtn" type="button" aria-label="Deshacer" title="Deshacer (Ctrl/⌘Z)">
@@ -79,6 +78,10 @@
   <main id="view" class="tome"></main>
 
   <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button id="drawer-knob" class="drawer-knob" type="button"
+            aria-label="Más opciones" aria-expanded="false" aria-controls="drawer">
+      <span class="drawer-knob__handle" aria-hidden="true"></span>
+    </button>
     <button class="tab" role="tab" data-tab="exploration" aria-selected="true">
       <span class="tab__glyph" aria-hidden="true">❂</span>
       <span class="tab__name">Andanzas</span>
@@ -96,6 +99,22 @@
       <span class="tab__name">Estados</span>
     </button>
   </nav>
+
+  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+  <aside id="drawer" class="drawer" hidden role="dialog" aria-modal="false" aria-labelledby="drawer-title">
+    <div class="drawer__rail" aria-hidden="true">
+      <span class="drawer__rail-handle"></span>
+    </div>
+    <div class="drawer__head">
+      <button id="drawer-back" type="button" class="drawer__back" hidden aria-label="Volver">‹</button>
+      <h2 id="drawer-title" class="drawer__title">
+        <span id="drawer-title-text">Más opciones</span>
+        <span id="drawer-version" class="drawer__version" aria-hidden="true"></span>
+      </h2>
+      <button id="drawer-close" type="button" class="drawer__close" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="drawer-body" class="drawer__body"></div>
+  </aside>
 
   <dialog id="prompt-dialog" class="prompt" aria-labelledby="prompt-title">
     <form method="dialog" class="prompt__card">

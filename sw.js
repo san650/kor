@@ -1,4 +1,5 @@
-const CACHE = 'kor-companion-v2';
+const VERSION = 'v4';
+const CACHE = `kor-companion-${VERSION}`;
 
 const SHELL = [
   './',
@@ -43,6 +44,14 @@ self.addEventListener('activate', (event) => {
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'GET_CACHE_VERSION') {
+    const reply = { type: 'CACHE_VERSION', value: CACHE };
+    if (event.ports?.[0]) event.ports[0].postMessage(reply);
+    else event.source?.postMessage(reply);
+  }
 });
 
 self.addEventListener('fetch', (event) => {

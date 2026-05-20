@@ -159,28 +159,125 @@ export const COMMANDS = {
   },
 
   SET_ACTIVE_TAB: {
+    transient: true,
     apply: (s, p) => replaceField(s, 'tab', p.to),
     revert: (s, p) => replaceField(s, 'tab', p.from),
     coalesceKey: () => 'tab',
   },
 
-  SET_STATUS_VALUE: {
+  TOGGLE_STATUS_PIP: {
+    apply: (s, p) => writeStatusPip(s, p.id, p.pip, p.to),
+    revert: (s, p) => writeStatusPip(s, p.id, p.pip, p.from),
+    coalesceKey: (p) => `statusPip:${p.id}:${p.pip}`,
+  },
+};
+
+const checklistCommands = (listKey, prefix) => ({
+  [`ADD_${prefix}`]: {
     apply: (s, p) => {
-      const doc = docFrom(s);
-      const statuses = { ...(doc.statuses || {}) };
-      if (p.to === 0) delete statuses[p.id];
-      else statuses[p.id] = p.to;
-      s.doc = { ...doc, statuses };
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: insertAt(list, p.to, p.index) };
     },
     revert: (s, p) => {
-      const doc = docFrom(s);
-      const statuses = { ...(doc.statuses || {}) };
-      if (p.from === 0) delete statuses[p.id];
-      else statuses[p.id] = p.from;
-      s.doc = { ...doc, statuses };
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: removeById(list, p.to.id) };
     },
-    coalesceKey: (p) => `status:${p.id}`,
+    coalesceKey: (p) => `add${prefix}:${p.to.id}`,
   },
+  [`REMOVE_${prefix}`]: {
+    apply: (s, p) => {
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: removeById(list, p.from.id) };
+    },
+    revert: (s, p) => {
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: insertAt(list, p.from, p.index) };
+    },
+    coalesceKey: (p) => `remove${prefix}:${p.from.id}`,
+  },
+  [`TOGGLE_${prefix}`]: {
+    apply: (s, p) => replaceListItem(s, listKey, p.id, (it) => ({ ...it, done: p.to })),
+    revert: (s, p) => replaceListItem(s, listKey, p.id, (it) => ({ ...it, done: p.from })),
+    coalesceKey: (p) => `toggle${prefix}:${p.id}`,
+  },
+});
+
+Object.assign(COMMANDS,
+  checklistCommands('sideQuests', 'SIDE_QUEST'),
+  checklistCommands('characters', 'CHARACTER'),
+  checklistCommands('locations',  'LOCATION'),
+);
+
+COMMANDS.ADD_NOTE = {
+  apply: (s, p) => {
+    const list = ensureCollection(s, 'notes');
+    s.doc = { ...docFrom(s), notes: insertAt(list, p.to, p.index) };
+  },
+  revert: (s, p) => {
+    const list = ensureCollection(s, 'notes');
+    s.doc = { ...docFrom(s), notes: removeById(list, p.to.id) };
+  },
+  coalesceKey: (p) => `addNote:${p.to.id}`,
+};
+COMMANDS.REMOVE_NOTE = {
+  apply: (s, p) => {
+    const list = ensureCollection(s, 'notes');
+    s.doc = { ...docFrom(s), notes: removeById(list, p.from.id) };
+  },
+  revert: (s, p) => {
+    const list = ensureCollection(s, 'notes');
+    s.doc = { ...docFrom(s), notes: insertAt(list, p.from, p.index) };
+  },
+  coalesceKey: (p) => `removeNote:${p.from.id}`,
+};
+
+export const defaultSession = () => ({
+  timeTokens: '',
+  companion:     { name: '', location: '' },
+  guardians:     { name: '', location: '' },
+  guideStone:    { location: '' },
+  perditionKing: { location: '' },
+  notes: '',
+  players: Array.from({ length: 4 }, () => ({
+    name: '', location: '',
+    skills: ['', '', '', '', '', ''],
+    food: '', wealth: '', exp: '', magic: '',
+    items: '',
+  })),
+});
+
+const setSessionAt = (state, path, value) => {
+  const doc = docFrom(state);
+  const session = structuredClone(doc.session || defaultSession());
+  let node = session;
+  for (let i = 0; i < path.length - 1; i++) {
+    const k = path[i];
+    if (node[k] == null) node[k] = (typeof path[i + 1] === 'number') ? [] : {};
+    node = node[k];
+  }
+  node[path[path.length - 1]] = value;
+  state.doc = { ...doc, session };
+};
+
+COMMANDS.SET_SESSION_FIELD = {
+  apply: (s, p) => setSessionAt(s, p.path, p.to),
+  revert: (s, p) => setSessionAt(s, p.path, p.from),
+  coalesceKey: (p) => `session:${p.path.join('.')}`,
+};
+
+const writeStatusPip = (state, id, pip, filled) => {
+  const doc = docFrom(state);
+  const statuses = { ...(doc.statuses || {}) };
+  const current = Array.isArray(statuses[id]) ? statuses[id] : [];
+  let next;
+  if (filled) {
+    next = current.includes(pip) ? current : [...current, pip].sort((a, b) => a - b);
+  } else {
+    next = current.filter((n) => n !== pip);
+  }
+  if (next.length === 0) delete statuses[id];
+  else statuses[id] = next;
+  state.doc = { ...doc, statuses };
 };
 
 export const makeCommand = (type, payload) => ({ type, payload });
