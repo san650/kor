@@ -591,18 +591,17 @@ body {
   position: relative;
 }
 .secret::after {
-  content: "✕";
+  content: "";
   position: absolute;
   top: -6px; right: -6px;
   width: 18px; height: 18px;
-  font-size: .65rem;
-  background: var(--blood);
-  color: var(--vellum-hi);
-  border-radius: 50%;
-  display: grid; place-items: center;
+  /* SVG with both colours baked in (blood circle, vellum X) so the badge
+     renders as bitmap without relying on font-rendered ✕. */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'><circle cx='9' cy='9' r='9' fill='%237a1a17'/><path d='M6 6 L12 12 M12 6 L6 12' stroke='%23f3e9cf' stroke-width='2.2' stroke-linecap='round' fill='none'/></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
   opacity: 0;
   transition: opacity .15s;
-  font-family: Georgia, serif;
 }
 .secret:hover::after, .secret:focus-visible::after { opacity: 1; }
 
@@ -698,6 +697,20 @@ body {
   background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
   opacity: .55;
 }
+/* iOS PWA: position:fixed; bottom:0 stops at the visible viewport, so a
+   ~34px home-indicator strip below the toolbar shows the body background.
+   This pseudo extends the toolbar's bottom colour down into that strip so
+   the bar visually reaches the physical screen bottom. */
+.tabs::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: env(safe-area-inset-bottom, 0px);
+  background: var(--leather-deep);
+  pointer-events: none;
+}
 .tab {
   appearance: none;
   background: transparent;
@@ -732,7 +745,9 @@ body {
 }
 .tab[aria-selected="true"] .tab__glyph {
   color: var(--gold-bright);
-  text-shadow: 0 0 12px rgba(212,179,92,.5), 0 0 2px rgba(212,179,92,.7);
+}
+.tab[aria-selected="true"] .tab__glyph svg {
+  filter: drop-shadow(0 0 6px rgba(212,179,92,.5));
 }
 .tab[aria-selected="true"]::after {
   content: "";
@@ -755,12 +770,17 @@ body {
   font-style: italic;
 }
 .hush::before {
-  content: "✦";
+  content: "";
   display: block;
-  font-style: normal;
-  color: var(--gold-deep);
-  font-size: 1.2rem;
-  margin-bottom: .35rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin: 0 auto .35rem;
+  background-color: var(--gold-deep);
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'><path d='M9 1.5 L10.4 7.6 L16.5 9 L10.4 10.4 L9 16.5 L7.6 10.4 L1.5 9 L7.6 7.6 Z' fill='white'/></svg>");
+          mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'><path d='M9 1.5 L10.4 7.6 L16.5 9 L10.4 10.4 L9 16.5 L7.6 10.4 L1.5 9 L7.6 7.6 Z' fill='white'/></svg>");
+  -webkit-mask-position: center;          mask-position: center;
+  -webkit-mask-repeat: no-repeat;         mask-repeat: no-repeat;
+  -webkit-mask-size: contain;             mask-size: contain;
 }
 
 /* =========================================================================
@@ -1409,25 +1429,33 @@ body {
   gap: .55rem;
   padding: 0 0 .8rem;
 }
-.sessionf__skills {
+/* Generic stat-grid for habilidades / vitalidad / recursos.
+   Modifier picks the column count; cells wrap to a 2-col layout on
+   narrow viewports so long labels (Espiritualidad…) keep room to breathe. */
+.sessionf__stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .35rem;
+  gap: .4rem;
 }
-.sessionf__resources {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: .35rem;
+.sessionf__stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sessionf__stats--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 380px) {
+  .sessionf__stats--3,
+  .sessionf__stats--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.sessionf__res {
+.sessionf__stat {
   display: flex;
   flex-direction: column;
   gap: .15rem;
   min-width: 0;
 }
-.sessionf__res .sessionf__input {
+.sessionf__stat .sessionf__label {
+  font-size: .58rem;
+  line-height: 1.15;
+}
+.sessionf__stat .sessionf__input {
   text-align: center;
-  font-size: .95rem;
+  font-size: 1rem;
+  padding: .3rem .2rem .25rem;
 }
 
 /* iOS tap highlight off */
@@ -1435,6 +1463,617 @@ button, [role="tab"], .menhir__mark, .quest__check, .secret, .faction__pip {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* =========================================================================
+   Transcurso del tiempo — círculos por capítulo
+   ========================================================================= */
+
+/* The journal renders both layouts; CSS picks the right one for the viewport.
+   Below 560px the user gets a dropdown + one large wheel; above, all ten. */
+.time-trackers__section { display: contents; }
+.time-trackers__mobile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .75rem;
+  margin: .35rem 0 1rem;
+}
+.time-trackers {
+  display: none;
+}
+@media (min-width: 560px) {
+  .time-trackers__mobile { display: none; }
+  .time-trackers {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .35rem .5rem;
+    margin: .35rem 0 1rem;
+  }
+}
+
+/* Custom chapter dropdown — a gilded scroll-bound listbox */
+.chapter-dropdown {
+  position: relative;
+  font-family: 'IM Fell English Local', Georgia, serif;
+}
+
+.chapter-dropdown__trigger {
+  appearance: none;
+  width: 100%;
+  padding: .7rem 1rem .65rem;
+  font: inherit;
+  font-size: 1.05rem;
+  letter-spacing: .015em;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem;
+  border: 1px solid var(--ink-faint);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg,
+      rgba(232, 220, 192, .85) 0%,
+      rgba(232, 220, 192, .55) 45%,
+      rgba(212, 179, 92, .22) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(232, 220, 192, .55),
+    inset 0 1px 0 rgba(255, 255, 255, .35),
+    0 1px 0 rgba(42, 20, 8, .12);
+  position: relative;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.chapter-dropdown__trigger:hover {
+  border-color: var(--gold-deep);
+  box-shadow:
+    inset 0 0 0 1px rgba(232, 220, 192, .65),
+    inset 0 1px 0 rgba(255, 255, 255, .4),
+    0 1px 0 rgba(42, 20, 8, .14),
+    0 0 0 1px rgba(168, 133, 63, .15);
+}
+.chapter-dropdown[data-open="true"] .chapter-dropdown__trigger {
+  border-color: var(--blood);
+  background: linear-gradient(180deg, var(--vellum-hi) 0%, var(--vellum) 100%);
+}
+.chapter-dropdown__label {
+  flex: 1;
+  text-align: left;
+}
+.chapter-dropdown__label::first-letter {
+  color: var(--blood);
+  font-size: 1.12em;
+}
+.chapter-dropdown__chevron {
+  display: flex;
+  align-items: center;
+  color: var(--gold-deep);
+  transform: rotate(90deg);
+  transition: transform .25s cubic-bezier(.2, .7, .2, 1), color .15s;
+}
+.chapter-dropdown[data-open="true"] .chapter-dropdown__chevron {
+  transform: rotate(270deg);
+  color: var(--blood);
+}
+
+.chapter-dropdown__menu {
+  list-style: none;
+  margin: .45rem 0 0;
+  padding: .45rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 7;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(122, 90, 40, .18), transparent 38%),
+    linear-gradient(180deg, var(--vellum-hi) 0%, var(--vellum) 65%, var(--vellum-lo));
+  border: 1px solid var(--gold-deep);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 2px rgba(232, 220, 192, .7),
+    0 24px 50px rgba(0, 0, 0, .55);
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  transform-origin: top center;
+  transform: translateY(-8px) scale(.97);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform .22s cubic-bezier(.2, .7, .2, 1),
+    opacity .18s ease;
+}
+.chapter-dropdown[data-open="true"] .chapter-dropdown__menu {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Soft gold rule between options */
+.chapter-dropdown__option + .chapter-dropdown__option {
+  border-top: 1px dashed rgba(122, 90, 40, .22);
+}
+
+.chapter-dropdown__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .65rem .9rem;
+  min-height: 44px;
+  font-size: 1rem;
+  color: var(--ink);
+  cursor: pointer;
+  position: relative;
+  border-radius: 2px;
+  transition: background .14s, color .14s, padding-left .15s;
+}
+.chapter-dropdown__option:hover {
+  background: rgba(122, 90, 40, .12);
+  padding-left: 1.05rem;
+}
+.chapter-dropdown__option:active { background: rgba(122, 90, 40, .18); }
+.chapter-dropdown__option[aria-selected="true"] {
+  color: var(--blood);
+  background: rgba(122, 26, 23, .06);
+}
+.chapter-dropdown__option[aria-selected="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 60%;
+  background: var(--blood);
+  border-radius: 0 2px 2px 0;
+  transform: translateY(-50%);
+}
+.chapter-dropdown__option-label::first-letter {
+  color: var(--gold-deep);
+}
+.chapter-dropdown__option[aria-selected="true"] .chapter-dropdown__option-label::first-letter {
+  color: var(--blood);
+}
+.chapter-dropdown__check {
+  color: var(--blood);
+  display: flex;
+  align-items: center;
+}
+.chapter-dropdown__check svg { display: block; }
+
+.time-tracker--focus {
+  padding: 1rem .5rem;
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+}
+.time-tracker--focus .time-tracker__circle {
+  width: clamp(180px, 60vw, 260px);
+  height: clamp(180px, 60vw, 260px);
+}
+.time-tracker--focus .time-tracker__caption {
+  font-size: 1.05rem;
+}
+.time-tracker--focus .time-tracker__count {
+  font-size: .7rem;
+}
+
+.time-tracker {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: .55rem .35rem .45rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  transition: background .15s, border-color .15s, transform .08s;
+  font: inherit;
+  color: var(--ink);
+}
+.time-tracker:hover {
+  background: rgba(232, 220, 192, .45);
+  border-color: rgba(122, 90, 40, .25);
+}
+.time-tracker:active { transform: scale(.96); }
+.time-tracker[data-full="true"] {
+  cursor: default;
+}
+.time-tracker[data-full="true"]:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.time-tracker__circle {
+  width: 84px;
+  height: 84px;
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(42, 20, 8, .15));
+}
+
+.time-tracker__caption {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: .9rem;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.15;
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
+.time-tracker__count {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  color: var(--ash);
+  text-transform: lowercase;
+}
+.time-tracker[data-full="true"] .time-tracker__title { color: var(--blood); }
+.time-tracker[data-full="true"] .time-tracker__count { color: var(--blood); }
+
+/* =========================================================================
+   Toasts — efímera notificación de deshacer / rehacer
+   ========================================================================= */
+
+#toast-region {
+  position: fixed;
+  bottom: calc(60px + env(safe-area-inset-bottom, 0px) + .65rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  gap: .45rem;
+  pointer-events: none;
+  width: min(360px, calc(100vw - 1.5rem));
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .8rem 1rem;
+  width: 100%;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(122, 90, 40, .16), transparent 40%),
+    linear-gradient(180deg, var(--vellum-hi), var(--vellum) 65%, var(--vellum-lo));
+  border: 1px solid var(--gold-deep);
+  border-radius: 4px;
+  color: var(--ink);
+  font-family: 'IM Fell English Local', Georgia, serif;
+  box-shadow:
+    inset 0 0 0 2px rgba(232, 220, 192, .72),
+    0 14px 30px rgba(0, 0, 0, .48);
+  opacity: 0;
+  transform: translateY(12px) scale(.96);
+  transition: opacity .22s ease, transform .28s cubic-bezier(.2, .7, .2, 1);
+  pointer-events: auto;
+}
+.toast[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.toast__icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--gold-deep);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.toast--redo .toast__icon { color: var(--blood); }
+.toast__icon svg { display: block; }
+
+.toast__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .12rem;
+}
+.toast__kind {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .6rem;
+  letter-spacing: .2em;
+  text-transform: lowercase;
+  color: var(--ash);
+}
+.toast__msg {
+  font-size: .94rem;
+  line-height: 1.3;
+  color: var(--ink);
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+          line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* =========================================================================
+   Inline-SVG icon plumbing
+   ========================================================================= */
+
+.tab__glyph svg,
+.timetrack__glyph svg,
+.menhir__mark svg,
+.quest__check svg,
+.drawer__item-glyph svg,
+.sessionf__summary-mark svg,
+.drawer__back svg,
+.drawer__close svg,
+.iconbtn svg,
+.drawer-knob svg,
+.menhir__del svg,
+.quest__del svg,
+.faction__del svg {
+  display: block;
+}
+
+/* Buttons that contain only an SVG (delete glyphs etc.) get their child
+   centred inside the tap target. */
+.menhir__del,
+.quest__del,
+.faction__del {
+  display: grid;
+  place-items: center;
+}
+
+/* Inline icon next to button text (action buttons) */
+.btn svg {
+  display: inline-block;
+  vertical-align: -.18em;
+  margin-right: .35em;
+}
+
+/* The session-form summary chevron rotates on open */
+.sessionf__summary-mark { display: inline-flex; }
+.sessionf__summary-mark svg { transition: transform .15s; }
+.sessionf__player[open] .sessionf__summary-mark svg { transform: rotate(90deg); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* =========================================================================
+   Desktop — abrir el grimorio sobre el atril
+   (≥ 960px: bottom tabs collapse into a left rail of illuminated entries.)
+   ========================================================================= */
+
+@media (min-width: 960px) {
+  html, body { font-size: 18px; }
+
+  body {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 2.5rem;
+    row-gap: 1.25rem;
+    padding: 2.5rem 2.5rem 3rem;
+    max-width: 1320px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    align-items: start;
+  }
+
+  /* === Sidebar header (col 1, row 1) === */
+
+  .tome-head {
+    grid-column: 1;
+    grid-row: 1;
+    width: auto;
+    margin: 0;
+    padding: 0 0 1.3rem;
+    border-bottom: 1px solid rgba(168,133,63,.42);
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: .85rem;
+    row-gap: .15rem;
+    align-items: center;
+  }
+  .tome-head__crest {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 56px; height: 56px;
+  }
+  .tome-head__crest svg { width: 56px; height: 56px; }
+  .tome-head__title {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    text-align: left;
+  }
+  .tome-head__title h1 {
+    font-size: 1.55rem;
+    line-height: 1.1;
+    margin: 0;
+  }
+  .tome-head__sub { font-size: .68rem; }
+  .tome-head__actions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 1rem;
+    justify-content: flex-start;
+  }
+
+  /* === Sidebar nav (col 1, row 2) === */
+
+  nav.tabs {
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;
+    left: auto; right: auto;
+    bottom: auto;
+    z-index: 1;
+    background: transparent;
+    border-top: none;
+    padding: 1rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    align-self: start;
+    align-items: stretch;
+    overflow: visible;
+  }
+  .tabs::before { display: none; }
+
+  .tab {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    place-items: center start;
+    text-align: left;
+    padding: .75rem .95rem;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    background: transparent;
+    gap: .85rem;
+    min-height: 50px;
+    color: var(--vellum-lo);
+    transition: background .15s, border-color .15s, color .15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab:hover {
+    background: rgba(232,220,192,.06);
+    color: var(--vellum-hi);
+  }
+  .tab:hover .tab__glyph { color: var(--gold); }
+  .tab[aria-selected="true"] {
+    background: linear-gradient(90deg, rgba(122,90,40,.32), rgba(122,90,40,.05));
+    border-color: rgba(168,133,63,.4);
+    color: var(--vellum-hi);
+  }
+  .tab[aria-selected="true"]::after {
+    /* Vertical gilt accent on the left edge instead of mobile's top ribbon */
+    content: "";
+    position: absolute;
+    inset: 18% auto 18% 0;
+    left: 0; right: auto; top: 18%; bottom: 18%;
+    width: 3px; height: auto;
+    background: var(--gold-bright);
+    box-shadow: 0 0 12px rgba(212,179,92,.55);
+  }
+  .tab__glyph {
+    font-size: 1.4rem;
+    line-height: 1;
+    margin: 0;
+  }
+  .tab__name {
+    font-family: 'IM Fell English Local', Georgia, serif;
+    font-size: 1.05rem;
+    letter-spacing: .02em;
+    text-transform: none;
+  }
+
+  /* Drawer-knob morphs into a labelled "Más opciones" button at the bottom
+     of the sidebar. order: 99 sends it after the tabs in the flex column. */
+  .drawer-knob {
+    order: 99;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    padding: .65rem 1rem;
+    margin-top: 1rem;
+    border: 1px solid rgba(168,133,63,.32);
+    background: transparent;
+    border-radius: 3px;
+    color: var(--vellum-lo);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .drawer-knob:hover {
+    background: rgba(232,220,192,.08);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+  }
+  .drawer-knob__handle {
+    width: 18px;
+    height: 3px;
+    background: currentColor;
+    box-shadow: none;
+    opacity: .8;
+    transition: width .15s, opacity .15s;
+  }
+  .drawer-knob[aria-expanded="true"] .drawer-knob__handle {
+    background: currentColor;
+    width: 14px;
+  }
+  .drawer-knob::after {
+    content: "Más opciones";
+    font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+    font-size: .72rem;
+    letter-spacing: .14em;
+    text-transform: lowercase;
+  }
+
+  /* === Main parchment (col 2) === */
+
+  main.tome {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    width: 100%;
+    max-width: none;
+    padding: 2.8rem 3.2rem 3rem;
+    margin: 0;
+    min-height: calc(100dvh - 5.5rem);
+  }
+
+  /* Make scene type breathe a little more on desktop */
+  .scene__title { font-size: 1.5rem; }
+  .scene__sub   { font-size: .78rem; }
+  .flourish     { width: 60%; max-width: 360px; }
+
+  /* === Drawer floats as a centred sheet (no more bottom-tabs to anchor to) === */
+
+  .drawer {
+    bottom: auto;
+    top: 10vh;
+    left: 50%;
+    margin: 0;
+    width: min(620px, 90vw);
+    max-height: 78vh;
+    border-radius: 6px;
+    border: 1px solid var(--gold-deep);
+    box-shadow:
+      inset 0 0 0 2px rgba(232,220,192,.7),
+      0 30px 80px rgba(0,0,0,.7);
+    transform: translateX(-50%) translateY(30px);
+    opacity: 0;
+  }
+  .drawer[data-open="true"] {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 1280px) {
+  body {
+    grid-template-columns: 300px minmax(0, 1fr);
+    padding: 3rem 3rem 3.5rem;
+  }
+  main.tome { padding: 3rem 4rem 3.5rem; }
+}
+
+/* On desktop the bottom tabs are gone, so the toast can sit closer to the
+   viewport edge instead of clearing a phantom tab band. */
+@media (min-width: 960px) {
+  #toast-region {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
+  }
 }

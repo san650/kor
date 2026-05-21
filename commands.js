@@ -170,6 +170,29 @@ export const COMMANDS = {
     revert: (s, p) => writeStatusPip(s, p.id, p.pip, p.from),
     coalesceKey: (p) => `statusPip:${p.id}:${p.pip}`,
   },
+
+  SET_CHAPTER_TIME: {
+    apply: (s, p) => writeChapterTime(s, p.chapter, p.to),
+    revert: (s, p) => writeChapterTime(s, p.chapter, p.from),
+    coalesceKey: (p) => `chapterTime:${p.chapter}`,
+  },
+
+  SET_SELECTED_CHAPTER: {
+    transient: true,
+    apply: (s, p) => replaceField(s, 'selectedChapter', p.to),
+    revert: (s, p) => replaceField(s, 'selectedChapter', p.from),
+    coalesceKey: () => 'selectedChapter',
+  },
+};
+
+const writeChapterTime = (state, chapter, value) => {
+  const doc = docFrom(state);
+  const arr = Array.isArray(doc.chapterTime)
+    ? [...doc.chapterTime]
+    : Array.from({ length: 10 }, () => 0);
+  while (arr.length < 10) arr.push(0);
+  arr[chapter] = Math.max(0, Math.min(6, Math.floor(Number(value) || 0)));
+  state.doc = { ...doc, chapterTime: arr };
 };
 
 const checklistCommands = (listKey, prefix) => ({
@@ -240,8 +263,13 @@ export const defaultSession = () => ({
   notes: '',
   players: Array.from({ length: 4 }, () => ({
     name: '', location: '',
-    skills: ['', '', '', '', '', ''],
-    food: '', wealth: '', exp: '', magic: '',
+    // Habilidades del personaje
+    agresividad: '', audacia: '', logica: '',
+    empatia: '', cautela: '', espiritualidad: '',
+    // Vitalidad
+    energia: '', salud: '', terror: '',
+    // Recursos
+    food: '', wealth: '', magic: '', exp: '',
     items: '',
   })),
 });

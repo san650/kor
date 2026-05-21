@@ -16,6 +16,8 @@ const initialState = () => ({
     secrets: [],
     factions: [],
     statuses: {},
+    chapterTime: Array.from({ length: 10 }, () => 0),
+    selectedChapter: 0,
     session: defaultSession(),
   },
 });
@@ -33,12 +35,11 @@ const ensureSession = (s) => {
     guideStone:    { ...base.guideStone,    ...(s.guideStone    || {}) },
     perditionKing: { ...base.perditionKing, ...(s.perditionKing || {}) },
     players: Array.from({ length: 4 }, (_, i) => {
+      // Spread base first so the player gets every field the current shape
+      // requires; user data overrides where present. Legacy `skills` arrays
+      // from older saves survive via `...p` but are no longer required.
       const p = s.players?.[i] || {};
-      return {
-        ...base.players[0],
-        ...p,
-        skills: Array.from({ length: 6 }, (_, j) => p.skills?.[j] || ''),
-      };
+      return { ...base.players[0], ...p };
     }),
   };
 };
@@ -57,8 +58,18 @@ const migrateStatuses = (raw) => {
   return out;
 };
 
-const STRIPPED_TYPES = new Set(['SET_STATUS_VALUE', 'SET_ACTIVE_TAB']);
+const STRIPPED_TYPES = new Set(['SET_STATUS_VALUE', 'SET_ACTIVE_TAB', 'SET_SELECTED_CHAPTER']);
 const isLiveCommand = (cmd) => cmd && !STRIPPED_TYPES.has(cmd.type);
+
+// Clamp chapterTime[0..9] into integers 0..6 (each wheel has six wedges).
+// Falls back to zero for any missing or malformed value so the renderer can
+// always trust the array.
+const ensureChapterTime = (raw) =>
+  Array.from({ length: 10 }, (_, i) => {
+    const v = Array.isArray(raw) ? raw[i] : 0;
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(0, Math.min(6, Math.floor(n))) : 0;
+  });
 
 class Store {
   constructor() {
@@ -77,6 +88,7 @@ class Store {
           doc: {
             ...merged,
             statuses: migrateStatuses(merged.statuses),
+            chapterTime: ensureChapterTime(merged.chapterTime),
             session: ensureSession(merged.session),
           },
         };
@@ -107,6 +119,25 @@ class Store {
 
   reset() {
     this.state = initialState();
+    this.history.clear();
+    this.#persist();
+    this.#notify();
+  }
+
+  // Replace the entire doc from a (validated) imported object. Reuses the
+  // same shape-normalization as #hydrate so an import behaves like loading a
+  // saved state from scratch. History is dropped since it doesn't belong to
+  // the imported doc.
+  importDoc(rawDoc) {
+    const merged = { ...initialState().doc, ...(rawDoc || {}) };
+    this.state = {
+      doc: {
+        ...merged,
+        statuses: migrateStatuses(merged.statuses),
+        chapterTime: ensureChapterTime(merged.chapterTime),
+        session: ensureSession(merged.session),
+      },
+    };
     this.history.clear();
     this.#persist();
     this.#notify();

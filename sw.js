@@ -1,4 +1,5 @@
-const VERSION = 'v4';
+importScripts('./version.js');
+const VERSION = self.KOR_VERSION;
 const CACHE = `kor-companion-${VERSION}`;
 
 const SHELL = [
@@ -12,6 +13,7 @@ const SHELL = [
   './store.js',
   './db.js',
   './statuses.js',
+  './version.js',
   './icon.svg',
   './fonts/fonts.css',
   './fonts/im-fell-english-400.woff2',
