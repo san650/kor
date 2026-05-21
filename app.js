@@ -1050,21 +1050,16 @@ const setDrawerMode = (mode) => {
   renderDrawerBody();
 };
 
-// The shell's version is set in version.js (shared with sw.js). Display it
-// immediately so the user can compare against what they deployed. Then ask
-// the active SW for its cache name and append it if it disagrees — that's
-// the "you're seeing a stale shell" signal.
-const APP_VERSION = (globalThis.KOR_VERSION || '');
-drawerVersion.textContent = APP_VERSION;
+// The deployed shell's version lives in sw.js as the source of truth. We
+// query the active SW (and listen for its broadcast on activate) and reflect
+// whatever it tells us. The drawer title stays blank until the SW responds —
+// which is the correct signal that the SW is missing or stale.
+let swVersion = '';
 
-const setSwVersion = (cacheName) => {
-  if (!cacheName) return;
-  const swVersion = cacheName.replace(/^kor-companion-/, '');
-  if (swVersion === APP_VERSION) {
-    drawerVersion.textContent = APP_VERSION;
-  } else {
-    drawerVersion.textContent = `app:${APP_VERSION} · sw:${swVersion}`;
-  }
+const setSwVersion = (value) => {
+  if (!value) return;
+
+  drawerVersion.textContent = value;
 };
 
 const askSwVersion = () => {
@@ -1260,7 +1255,7 @@ const formatLogTime = (t) => {
 const exportDoc = () => {
   const payload = {
     app: 'kor-companion',
-    version: globalThis.KOR_VERSION || 'unknown',
+    version: swVersion || 'unknown',
     exportedAt: new Date().toISOString(),
     doc: store.state.doc,
   };

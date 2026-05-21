@@ -1,5 +1,7 @@
-importScripts('./version.js');
-const VERSION = self.KOR_VERSION;
+// Single source of truth for the deployed shell version. Bump this constant
+// on every deploy — the new SW will install, broadcast the value, and the
+// client will reflect it in the drawer header.
+const VERSION = 'v17';
 const CACHE = `kor-companion-${VERSION}`;
 
 const SHELL = [
@@ -13,7 +15,6 @@ const SHELL = [
   './store.js',
   './db.js',
   './statuses.js',
-  './version.js',
   './icon.svg',
   './fonts/fonts.css',
   './fonts/im-fell-english-400.woff2',
@@ -47,14 +48,14 @@ self.addEventListener('activate', (event) => {
       .then(() => self.clients.claim())
       .then(() => self.clients.matchAll({ type: 'window' }))
       .then((clients) => clients.forEach((c) =>
-        c.postMessage({ type: 'CACHE_VERSION', value: CACHE })
+        c.postMessage({ type: 'CACHE_VERSION', value: VERSION })
       ))
   );
 });
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'GET_CACHE_VERSION') {
-    const reply = { type: 'CACHE_VERSION', value: CACHE };
+    const reply = { type: 'CACHE_VERSION', value: VERSION };
     if (event.ports?.[0]) event.ports[0].postMessage(reply);
     else event.source?.postMessage(reply);
   }
