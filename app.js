@@ -77,6 +77,25 @@ const ICON_SVG = {
   upload: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16 V5"/><path d="M7 10 L12 5 L17 10"/><path d="M5 19 H19"/></svg>`,
   undo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5 L3 10 L8 15"/><path d="M3 10 H13 a6 6 0 0 1 0 12 H10"/></svg>`,
   redo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 5 L21 10 L16 15"/><path d="M21 10 H11 a6 6 0 0 0 0 12 H14"/></svg>`,
+  // Obelisk — a tapered standing-stone with bare, branching limbs sprouting
+  // from its crown like a petrified tree. The asymmetry of the branches and
+  // the way the stone roots into a small plinth nod to KOR's quietly weird,
+  // half-organic monoliths. Used as the Roca Guía's centerpiece.
+  obelisk: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <!-- bare branches climbing out of the obelisk's crown -->
+    <path d="M12 9 L12 4.2" stroke-width="1"/>
+    <path d="M12 6.4 L10 4.2"/>
+    <path d="M12 5 L13.6 3.4"/>
+    <path d="M12 7.4 L14 5.8"/>
+    <path d="M12 8 L10.4 6.6"/>
+    <path d="M13.6 3.4 L14.6 2.4" opacity=".75"/>
+    <path d="M10 4.2 L9 3.4" opacity=".75"/>
+    <path d="M14 5.8 L15 5" opacity=".75"/>
+    <!-- the obelisk shaft + plinth, filled stone -->
+    <path d="M10.4 9 L13.6 9 L14 19 L16 19 L16 20.7 L8 20.7 L8 19 L10 19 Z" fill="currentColor" stroke="currentColor" stroke-width=".4"/>
+    <!-- a single inscribed mark on the shaft -->
+    <path d="M11.4 13 L12.6 13" opacity=".5" stroke="rgba(255,250,230,.7)"/>
+  </svg>`,
 };
 
 const ICON_CACHE = {};
@@ -147,7 +166,7 @@ confirmCancel.addEventListener('click', () => settleConfirm(false));
 confirmDialog.addEventListener('close', () => { if (confirmResolver) settleConfirm(false); });
 confirmDialog.onclick = (e) => { if (e.target === confirmDialog) settleConfirm(false); };
 
-const askConfirm = ({ title, body, confirmLabel = 'Tachar', cancelLabel = 'Conservar' }) =>
+const askConfirm = ({ title, body, confirmLabel = 'Borrar', cancelLabel = 'Conservar' }) =>
   new Promise((resolve) => {
     confirmResolver = resolve;
     confirmTitle.textContent = title;
@@ -248,6 +267,7 @@ const askHeroPicker = (availableIndices) => new Promise((resolve) => {
         el('button', {
           type: 'button',
           class: 'hero-picker__btn',
+          dataset: { hero: heroKey(idx) },
           onclick: () => settleHeroPicker(idx),
         },
           sigilNode(idx),
@@ -380,20 +400,25 @@ const renderNoteRows = (notes) => {
               title: 'Editar nota',
               textLabel: '¿Qué se quiere recordar?',
               textValue: n.text || '',
+              hasLocation: true,
+              locationValue: n.location || '',
             });
             if (!result) return;
-            const to = { ...n, text: result.text };
-            if (to.text === (n.text || '')) return;
+            const to = { ...n, text: result.text, location: result.location || '' };
+            if (to.text === (n.text || '') && to.location === (n.location || '')) return;
             store.dispatch(makeCommand('UPDATE_NOTE', { id: n.id, from: n, to }));
           },
-        }, n.text),
+        },
+          n.location ? el('span', { class: 'ledger__row-loc ledger__note-loc' }, n.location) : null,
+          el('span', { class: 'ledger__note-body' }, n.text),
+        ),
         el('button', {
           type: 'button',
           class: 'ledger__row-del',
           'aria-label': 'Borrar nota',
           onclick: async () => {
             const ok = await askConfirm({
-              title: '¿Tachar la nota?',
+              title: '¿Borrar la nota?',
               body: 'La nota se perderá.',
             });
             if (!ok) return;
@@ -447,7 +472,7 @@ const renderQuestRows = (quests) => {
           'aria-label': `Borrar ${q.title}`,
           onclick: async () => {
             const ok = await askConfirm({
-              title: '¿Tachar la misión?',
+              title: '¿Borrar la misión?',
               body: `«${q.title}» será arrancada del diario.`,
             });
             if (!ok) return;
@@ -461,7 +486,7 @@ const renderQuestRows = (quests) => {
 };
 
 // Shared state row — text on the left, optional location plaque, delete chip.
-// Used by the four text+location sections (Fichas, Partners, Rey, Guardianes).
+// Used by the four text+location sections (Fichas, Compañeros, Rey, Guardianes).
 const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') => {
   if (items.length === 0) return null;
   const list = el('ul', { class: 'ledger__list' });
@@ -508,19 +533,17 @@ const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') =
 // Roca Guía — one card per stone: 2×2 grid of quadrant locations surrounding
 // a circular center holding the stone's own location number. All five fields
 // are inline-editable; SET_GUIDE_STONE_FIELD dispatches on blur (onchange).
-const MAX_GUIDE_STONES = 4;
+const MAX_GUIDE_STONES = 3;
 
 const renderGuideStone = (stone, indexInList) => {
-  const field = (key, extraClass) => {
+  const field = (key) => {
     const value = stone[key] || '';
     return el('input', {
       type: 'text',
-      class: `guidestone__input${extraClass ? ` ${extraClass}` : ''}`,
+      class: 'guidestone__input',
       value,
       placeholder: '101',
-      'aria-label': key === 'center'
-        ? 'Roca Guía — localización central'
-        : `Roca Guía — cuadrante ${key.slice(1)}`,
+      'aria-label': `Roca Guía — cuadrante ${key.slice(1)}`,
       autocomplete: 'off',
       autocapitalize: 'none',
       spellcheck: 'false',
@@ -537,6 +560,23 @@ const renderGuideStone = (stone, indexInList) => {
   };
 
   return el('article', { class: 'guidestone' },
+    // DOM order here drives keyboard tab order. Each quadrant has a fixed
+    // `grid-area` in CSS so visual placement is independent of DOM order.
+    // Tabbing flows clockwise from top-left so it matches how a player
+    // reads the four destinations radiating from the stone: TL → TR → BR → BL.
+    // The remove × lives at the end of the article so it doesn't interrupt
+    // the flow between consecutive stones.
+    el('div', { class: 'guidestone__grid' },
+      el('div', { class: 'guidestone__quad guidestone__quad--tl' }, field('q1')),
+      el('div', { class: 'guidestone__quad guidestone__quad--tr' }, field('q2')),
+      el('div', { class: 'guidestone__quad guidestone__quad--br' }, field('q4')),
+      el('div', { class: 'guidestone__quad guidestone__quad--bl' }, field('q3')),
+      // Center is now a decorative obelisk icon — the stone itself, mute and
+      // monolithic at the crossroads of its four destinations.
+      el('div', { class: 'guidestone__center', 'aria-hidden': 'true' },
+        icon('obelisk'),
+      ),
+    ),
     el('button', {
       type: 'button',
       class: 'guidestone__remove',
@@ -551,15 +591,6 @@ const renderGuideStone = (stone, indexInList) => {
         store.dispatch(makeCommand('REMOVE_GUIDE_STONE', { from: stone, index: indexInList }));
       },
     }, icon('cross')),
-    el('div', { class: 'guidestone__grid' },
-      el('div', { class: 'guidestone__quad guidestone__quad--tl' }, field('q1')),
-      el('div', { class: 'guidestone__quad guidestone__quad--tr' }, field('q2')),
-      el('div', { class: 'guidestone__quad guidestone__quad--bl' }, field('q3')),
-      el('div', { class: 'guidestone__quad guidestone__quad--br' }, field('q4')),
-      el('div', { class: 'guidestone__center' },
-        field('center', 'guidestone__input--center'),
-      ),
-    ),
   );
 };
 
@@ -574,7 +605,7 @@ const renderGuideStonesSection = (stones) => {
     title: 'Roca Guía',
     addLabel: canAdd ? 'inscribir' : null,
     onAdd: canAdd ? () => {
-      const stone = { id: newId(), center: '', q1: '', q2: '', q3: '', q4: '' };
+      const stone = { id: newId(), q1: '', q2: '', q3: '', q4: '' };
       store.dispatch(makeCommand('ADD_GUIDE_STONE', { to: stone, index: stones.length }));
     } : null,
     body,
@@ -605,30 +636,21 @@ const renderExploration = (doc) => {
   const perditionKings = doc.perditionKings || [];
   const guideStones    = doc.guideStones    || [];
 
-  const askLocation = (title) => askPrompt({
-    title,
-    label: 'N.º de localización (opcional)',
-    placeholder: '101',
-    inputmode: 'numeric',
-  });
-
-  // --- Shared state ---------------------------------------------------
-  // Each of these is a checklist of `{text, location}` items: prompts ask
-  // for a description first, then an optional location number. The remove
-  // confirm uses the description as the subject when present.
+  // Every add flow uses the same dialog as edit (askEditItem) so both
+  // text and the optional location are visible in a single modal.
   const sharedSection = ({ title, addLabel, prefix, items, promptTitle, promptLabel, promptPlaceholder, removeTitle, editTitle }) =>
     renderLedgerSection({
       title,
       addLabel,
       onAdd: async () => {
-        const text = await askPrompt({
+        const result = await askEditItem({
           title: promptTitle,
-          label: promptLabel,
-          placeholder: promptPlaceholder,
+          textLabel: promptLabel,
+          textPlaceholder: promptPlaceholder,
+          hasLocation: true,
         });
-        if (!text) return;
-        const location = await askLocation('Marca la localización');
-        const it = { id: newId(), text, location: location || '' };
+        if (!result) return;
+        const it = { id: newId(), text: result.text, location: result.location || '' };
         store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: items.length }));
       },
       body: renderTextLocRows(items, prefix, (it) => askConfirm({
@@ -641,14 +663,14 @@ const renderExploration = (doc) => {
     title: 'Misión principal',
     addLabel: 'iniciar',
     onAdd: async () => {
-      const title = await askPrompt({
+      const result = await askEditItem({
         title: 'Nueva misión',
-        label: '¿Qué se emprende?',
-        placeholder: 'Encontrar al Ermitaño del Tarn',
+        textLabel: '¿Qué se emprende?',
+        textPlaceholder: 'Encontrar al Ermitaño del Tarn',
+        hasLocation: true,
       });
-      if (!title) return;
-      const location = await askLocation('Marca la localización');
-      const q = { id: newId(), title, location: location || '', done: false };
+      if (!result) return;
+      const q = { id: newId(), title: result.text, location: result.location || '', done: false };
       store.dispatch(makeCommand('ADD_QUEST', { to: q, index: quests.length }));
     },
     body: renderQuestRows(quests),
@@ -658,18 +680,18 @@ const renderExploration = (doc) => {
     title: 'Misiones secundarias',
     addLabel: 'añadir',
     onAdd: async () => {
-      const title = await askPrompt({
+      const result = await askEditItem({
         title: 'Nueva misión secundaria',
-        label: '¿Qué encargo se acepta?',
-        placeholder: 'Recuperar la espada perdida',
+        textLabel: '¿Qué encargo se acepta?',
+        textPlaceholder: 'Recuperar la espada perdida',
+        hasLocation: true,
       });
-      if (!title) return;
-      const location = await askLocation('Marca la localización');
-      const it = { id: newId(), title, location: location || '', done: false };
+      if (!result) return;
+      const it = { id: newId(), title: result.text, location: result.location || '', done: false };
       store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: sideQuests.length }));
     },
     body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
-      title: '¿Tachar la misión?',
+      title: '¿Borrar la misión?',
       body: `«${it.title}» será arrancada del diario.`,
     }), 'Editar misión secundaria'),
   }));
@@ -678,28 +700,29 @@ const renderExploration = (doc) => {
     title: 'Notas',
     addLabel: 'anotar',
     onAdd: async () => {
-      const text = await askPrompt({
+      const result = await askEditItem({
         title: 'Nueva nota',
-        label: '¿Qué se quiere recordar?',
-        placeholder: 'La hoguera ardió tres noches…',
+        textLabel: '¿Qué se quiere recordar?',
+        textPlaceholder: 'La hoguera ardió tres noches…',
+        hasLocation: true,
       });
-      if (!text) return;
-      const n = { id: newId(), text };
+      if (!result) return;
+      const n = { id: newId(), text: result.text, location: result.location || '' };
       store.dispatch(makeCommand('ADD_NOTE', { to: n, index: notes.length }));
     },
     body: renderNoteRows(notes),
   }));
 
   scene.append(sharedSection({
-    title: 'Partners',
+    title: 'Compañeros',
     addLabel: 'añadir',
     prefix: 'PARTNER',
     items: partners,
-    promptTitle: 'Nuevo partner',
+    promptTitle: 'Nuevo compañero',
     promptLabel: 'Nombre o descripción',
     promptPlaceholder: 'Aedric el Bardo',
-    removeTitle: '¿Olvidar a este partner?',
-    editTitle: 'Editar partner',
+    removeTitle: '¿Olvidar a este compañero?',
+    editTitle: 'Editar compañero',
   }));
 
   scene.append(sharedSection({
@@ -710,7 +733,7 @@ const renderExploration = (doc) => {
     promptTitle: 'Nueva ficha de tiempo',
     promptLabel: 'Descripción',
     promptPlaceholder: 'Cae la noche sobre el valle',
-    removeTitle: '¿Tachar la ficha?',
+    removeTitle: '¿Borrar la ficha?',
     editTitle: 'Editar ficha de tiempo',
   }));
 
@@ -722,7 +745,7 @@ const renderExploration = (doc) => {
     promptTitle: 'Rey de la Perdición',
     promptLabel: 'Nombre o descripción',
     promptPlaceholder: 'El Coronado de Espinos',
-    removeTitle: '¿Tachar al Rey?',
+    removeTitle: '¿Borrar al Rey?',
     editTitle: 'Editar Rey de la Perdición',
   }));
 
@@ -1217,7 +1240,7 @@ const formatLogEntry = (cmd, doc) => {
     case 'ADD_QUEST':
       return `Iniciar misión «${p.to?.title ?? '?'}»`;
     case 'REMOVE_QUEST':
-      return `Tachar misión «${p.from?.title ?? '?'}»`;
+      return `Borrar misión «${p.from?.title ?? '?'}»`;
     case 'TOGGLE_QUEST': {
       const q = findIn('quests', p.id);
       return `Misión${q ? ` «${q.title}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
@@ -1229,7 +1252,7 @@ const formatLogEntry = (cmd, doc) => {
     case 'SET_CHAPTER_TIME':
       return `Transcurso del tiempo — Capítulo ${p.chapter + 1}: ${p.from} → ${p.to}`;
     case 'ADD_SIDE_QUEST':    return `Añadir misión secundaria «${p.to?.title ?? '?'}»`;
-    case 'REMOVE_SIDE_QUEST': return `Tachar misión secundaria «${p.from?.title ?? '?'}»`;
+    case 'REMOVE_SIDE_QUEST': return `Borrar misión secundaria «${p.from?.title ?? '?'}»`;
     case 'TOGGLE_SIDE_QUEST': {
       const it = findIn('sideQuests', p.id);
       return `Misión secundaria${it ? ` «${it.title}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
@@ -1249,9 +1272,9 @@ const formatLogEntry = (cmd, doc) => {
     case 'ADD_TIME_TOKEN':       return `Ficha de tiempo añadida: «${(p.to?.text || '').slice(0, 40)}»`;
     case 'REMOVE_TIME_TOKEN':    return `Ficha de tiempo borrada: «${(p.from?.text || '').slice(0, 40)}»`;
     case 'UPDATE_TIME_TOKEN':    return `Ficha de tiempo editada: «${(p.to?.text || '').slice(0, 40)}»`;
-    case 'ADD_PARTNER':          return `Partner inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
-    case 'REMOVE_PARTNER':       return `Partner borrado: «${(p.from?.text || '').slice(0, 40)}»`;
-    case 'UPDATE_PARTNER':       return `Partner editado: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_PARTNER':          return `Compañero inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'REMOVE_PARTNER':       return `Compañero borrado: «${(p.from?.text || '').slice(0, 40)}»`;
+    case 'UPDATE_PARTNER':       return `Compañero editado: «${(p.to?.text || '').slice(0, 40)}»`;
     case 'ADD_GUARDIAN':         return `Guardián inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
     case 'REMOVE_GUARDIAN':      return `Guardián borrado: «${(p.from?.text || '').slice(0, 40)}»`;
     case 'UPDATE_GUARDIAN':      return `Guardián editado: «${(p.to?.text || '').slice(0, 40)}»`;
@@ -1260,10 +1283,8 @@ const formatLogEntry = (cmd, doc) => {
     case 'UPDATE_PERDITION_KING':return `Rey de la Perdición editado: «${(p.to?.text || '').slice(0, 40)}»`;
     case 'ADD_GUIDE_STONE':      return `Roca Guía inscrita`;
     case 'REMOVE_GUIDE_STONE':   return `Roca Guía borrada`;
-    case 'SET_GUIDE_STONE_FIELD': {
-      const which = p.field === 'center' ? 'centro' : `cuadrante ${p.field.slice(1)}`;
-      return `Roca Guía — ${which}: ${p.from || '∅'} → ${p.to || '∅'}`;
-    }
+    case 'SET_GUIDE_STONE_FIELD':
+      return `Roca Guía — cuadrante ${p.field.slice(1)}: ${p.from || '∅'} → ${p.to || '∅'}`;
     case 'ADD_NOTE':
       return `Nota añadida: «${(p.to?.text || '').slice(0, 40)}${(p.to?.text?.length ?? 0) > 40 ? '…' : ''}»`;
     case 'REMOVE_NOTE':
@@ -1496,6 +1517,7 @@ const sheetInput = ({ path, placeholder = '', label, autocapitalize = 'sentences
   const classes = ['gamesheet__input'];
   if (variant === 'stat') classes.push('gamesheet__input--stat');
   if (variant === 'location') classes.push('gamesheet__input--location');
+  if (variant === 'cell') classes.push('hero__cell-input');
   return el('input', {
     type: 'text',
     class: classes.join(' '),
@@ -1539,12 +1561,17 @@ const CHARACTER_SIGILS = [
   '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 27V8"/><path d="M16 13l-4-4M16 13l4-4M16 18l-5-3M16 18l5-3M16 9l-2-3M16 9l2-3"/><circle cx="16" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>',
 ];
 
+const sigilSvg = (idx) =>
+  ICON_PARSER.parseFromString(CHARACTER_SIGILS[idx], 'image/svg+xml').documentElement;
+
 const sigilNode = (idx) => {
   const wrap = el('span', { class: 'gamesheet__sigil', 'aria-hidden': 'true' });
-  const parsed = ICON_PARSER.parseFromString(CHARACTER_SIGILS[idx], 'image/svg+xml');
-  wrap.append(parsed.documentElement);
+  wrap.append(sigilSvg(idx));
   return wrap;
 };
+
+// Lowercase key for [data-hero] attribute / accent CSS.
+const heroKey = (idx) => CHARACTER_NAMES[idx].toLowerCase();
 
 // Each hero now owns a list of items/notes that behaves like the Andanzas
 // Notes section — add via prompt, delete with confirm. Items survive across
@@ -1565,20 +1592,25 @@ const renderHeroItemRows = (heroIdx, items) => {
               title: 'Editar nota',
               textLabel: '¿Qué se quiere recordar?',
               textValue: it.text || '',
+              hasLocation: true,
+              locationValue: it.location || '',
             });
             if (!result) return;
-            const to = { ...it, text: result.text };
-            if (to.text === (it.text || '')) return;
+            const to = { ...it, text: result.text, location: result.location || '' };
+            if (to.text === (it.text || '') && to.location === (it.location || '')) return;
             store.dispatch(makeCommand('UPDATE_HERO_ITEM', { heroIdx, id: it.id, from: it, to }));
           },
-        }, it.text),
+        },
+          it.location ? el('span', { class: 'ledger__row-loc ledger__note-loc' }, it.location) : null,
+          el('span', { class: 'ledger__note-body' }, it.text),
+        ),
         el('button', {
           type: 'button',
           class: 'ledger__row-del',
           'aria-label': 'Borrar nota',
           onclick: async () => {
             const ok = await askConfirm({
-              title: '¿Tachar la nota?',
+              title: '¿Borrar la nota?',
               body: 'La nota se perderá.',
             });
             if (!ok) return;
@@ -1597,59 +1629,76 @@ const renderHeroItemsSection = (heroIdx, heroName) => {
     title: 'Objetos / Notas',
     addLabel: 'anotar',
     onAdd: async () => {
-      const text = await askPrompt({
+      const result = await askEditItem({
         title: `Anotar para ${heroName}`,
-        label: '¿Qué se quiere recordar?',
-        placeholder: 'Una bolsa de monedas, una llave oxidada…',
+        textLabel: '¿Qué se quiere recordar?',
+        textPlaceholder: 'Una bolsa de monedas, una llave oxidada…',
+        hasLocation: true,
       });
-      if (!text) return;
-      const it = { id: newId(), text };
+      if (!result) return;
+      const it = { id: newId(), text: result.text, location: result.location || '' };
       store.dispatch(makeCommand('ADD_HERO_ITEM', { heroIdx, to: it, index: items.length }));
     },
     body: renderHeroItemRows(heroIdx, items),
   });
 };
 
-const renderPlayerCard = (idx) => {
+const renderPlayerCard = (idx, orderIndex = 0) => {
   const characterName = CHARACTER_NAMES[idx];
-  const stat = (key, label, short) =>
-    el('label', { class: 'gamesheet__stat' },
-      el('span', { class: 'gamesheet__stat-label' }, short || label),
+  const key = heroKey(idx);
+
+  const cell = (statKey, label, short) =>
+    el('label', { class: 'hero__cell' },
       sheetInput({
-        path: ['players', idx, key],
+        path: ['players', idx, statKey],
         placeholder: '0',
         label: `${characterName}, ${label}`,
         autocapitalize: 'none',
         inputmode: 'numeric',
-        variant: 'stat',
+        variant: 'cell',
       }),
-    );
-  const rubric = (label) =>
-    el('div', { class: 'gamesheet__rubric' },
-      el('span', { class: 'gamesheet__rubric-mark' }),
-      el('span', {}, label),
-      el('span', { class: 'gamesheet__rubric-mark' }),
-    );
-  const statGroup = (label, gridClass, ...stats) =>
-    el('div', { class: 'gamesheet__stat-group' },
-      rubric(label),
-      el('div', { class: `gamesheet__stats ${gridClass}` }, ...stats),
+      el('span', { class: 'hero__cell-label' }, short || label),
     );
 
-  return el('article', { class: 'gamesheet__player', dataset: { hero: characterName.toLowerCase() } },
-    el('header', { class: 'gamesheet__player-head' },
-      sigilNode(idx),
-      el('h3', { class: 'gamesheet__player-name' }, characterName),
-      el('span', { class: 'gamesheet__player-rule', 'aria-hidden': 'true' }),
+  const group = (title, modifier, ...cells) =>
+    el('section', { class: 'hero__group', dataset: { group: modifier } },
+      el('header', { class: 'hero__rubric' },
+        el('span', { class: 'hero__rubric-mark', 'aria-hidden': 'true' }),
+        el('h4', { class: 'hero__rubric-title' }, title),
+        el('span', { class: 'hero__rubric-line', 'aria-hidden': 'true' }),
+      ),
+      el('div', { class: 'hero__cells' }, ...cells),
+    );
+
+  return el('article', {
+    class: 'hero',
+    dataset: { hero: key },
+    style: `--hero-i: ${orderIndex}`,
+  },
+    el('header', { class: 'hero__head' },
+      el('h3', { class: 'hero__name' }, characterName),
+      // Location sits inline next to the name, wrapped in literal parens
+      // via CSS ::before/::after so the input flow remains accessible.
+      el('label', { class: 'hero__loc', 'aria-label': `${characterName}, Localización` },
+        el('span', { class: 'hero__loc-tag' }, 'en la'),
+        sheetInput({
+          path: ['players', idx, 'location'],
+          placeholder: '101',
+          label: `${characterName}, Localización`,
+          autocapitalize: 'none',
+          inputmode: 'numeric',
+          variant: 'location',
+        }),
+      ),
       el('button', {
         type: 'button',
-        class: 'gamesheet__player-remove',
+        class: 'hero__remove',
         'aria-label': `Quitar a ${characterName} de la sesión`,
         title: 'Quitar de la sesión',
         onclick: async () => {
           const ok = await askConfirm({
             title: `¿Quitar a ${characterName}?`,
-            body: `Sus datos quedarán guardados en el tomo; podrás volver a añadirlo más tarde.`,
+            body: 'Sus datos quedarán guardados en el tomo; podrás volver a añadirlo más tarde.',
             confirmLabel: 'Quitar',
             cancelLabel: 'Conservar',
           });
@@ -1660,43 +1709,27 @@ const renderPlayerCard = (idx) => {
         },
       }, icon('cross')),
     ),
-    el('div', { class: 'gamesheet__player-body' },
-      el('label', { class: 'gamesheet__field gamesheet__field--block gamesheet__field--inline' },
-        el('span', { class: 'gamesheet__label' }, 'Localización'),
-        sheetInput({
-          path: ['players', idx, 'location'],
-          placeholder: '101',
-          label: `${characterName}, Localización`,
-          autocapitalize: 'none',
-          inputmode: 'numeric',
-          variant: 'location',
-        }),
+    el('div', { class: 'hero__content' },
+      group('Habilidades', 'skills',
+        cell('agresividad',    'Agresividad',    'Agresividad'),
+        cell('audacia',        'Audacia',        'Audacia'),
+        cell('logica',         'Lógica',         'Lógica'),
+        cell('empatia',        'Empatía',        'Empatía'),
+        cell('cautela',        'Cautela',        'Cautela'),
+        cell('espiritualidad', 'Espiritualidad', 'Espiritual.'),
       ),
-      // Stat groups stack on narrow viewports and pivot into a 3-column grid
-      // on desktop (see .gamesheet__player-stats media rule). Items / Notas
-      // always lives below as a full-width ledger section.
-      el('div', { class: 'gamesheet__player-stats' },
-        statGroup('Habilidades', 'gamesheet__stats--3',
-          stat('agresividad',    'Agresividad',    'Agresividad'),
-          stat('audacia',        'Audacia',        'Audacia'),
-          stat('logica',         'Lógica',         'Lógica'),
-          stat('empatia',        'Empatía',        'Empatía'),
-          stat('cautela',        'Cautela',        'Cautela'),
-          stat('espiritualidad', 'Espiritualidad', 'Espiritual.'),
-        ),
-        statGroup('Vitalidad', 'gamesheet__stats--3',
-          stat('energia', 'Energía', 'Energía'),
-          stat('salud',   'Salud',   'Salud'),
-          stat('terror',  'Terror',  'Terror'),
-        ),
-        statGroup('Recursos', 'gamesheet__stats--4',
-          stat('food',   'Comida',      'Comida'),
-          stat('wealth', 'Riqueza',     'Riqueza'),
-          stat('magic',  'Magia',       'Magia'),
-          stat('exp',    'Experiencia', 'Exp.'),
-        ),
+      group('Vitalidad', 'vitality',
+        cell('energia', 'Energía', 'Energía'),
+        cell('salud',   'Salud',   'Salud'),
+        cell('terror',  'Terror',  'Terror'),
       ),
-      renderHeroItemsSection(idx, characterName),
+      group('Recursos', 'resources',
+        cell('food',   'Comida',      'Comida'),
+        cell('wealth', 'Riqueza',     'Riqueza'),
+        cell('magic',  'Magia',       'Magia'),
+        cell('exp',    'Experiencia', 'Exp.'),
+      ),
+      el('div', { class: 'hero__items' }, renderHeroItemsSection(idx, characterName)),
     ),
   );
 };
@@ -1714,15 +1747,8 @@ const renderHeroes = () => {
   const selected = Array.isArray(session.selectedHeroes) ? session.selectedHeroes : [];
   const available = CHARACTER_NAMES.map((_, i) => i).filter((i) => !selected.includes(i));
 
-  const heroesHead = el('div', { class: 'gamesheet__heroes-head' },
-    el('span', { class: 'gamesheet__heroes-mark', 'aria-hidden': 'true' }),
-    el('h3', { class: 'gamesheet__heroes-title' }, 'Héroes'),
-    el('span', { class: 'gamesheet__heroes-mark', 'aria-hidden': 'true' }),
-  );
-  scene.append(heroesHead);
-
   const heroesGrid = el('div', { class: 'gamesheet__heroes' });
-  for (const idx of selected) heroesGrid.append(renderPlayerCard(idx));
+  selected.forEach((idx, i) => heroesGrid.append(renderPlayerCard(idx, i)));
 
   // The add card sits inside the grid so on wide screens it slots in beside
   // existing heroes; on narrow it stacks below. It only renders while there
@@ -1733,6 +1759,7 @@ const renderHeroes = () => {
         type: 'button',
         class: 'gamesheet__add-hero',
         dataset: { empty: selected.length === 0 ? 'true' : 'false' },
+        style: `--hero-i: ${selected.length}`,
         onclick: async () => {
           const pick = await askHeroPicker(available);
           if (pick == null) return;
@@ -1741,7 +1768,7 @@ const renderHeroes = () => {
       },
         el('span', { class: 'gamesheet__add-hero-mark', 'aria-hidden': 'true' }, icon('plus')),
         el('span', { class: 'gamesheet__add-hero-label' },
-          selected.length === 0 ? 'Añadir el primer héroe' : 'Añadir otro héroe',
+          selected.length === 0 ? 'Convocar al primer héroe' : 'Convocar a otro héroe',
         ),
       ),
     );

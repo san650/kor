@@ -502,6 +502,12 @@ body {
   outline-offset: 1px;
   background: rgba(122, 90, 40, .04);
 }
+/* Location plaque sits inline at the start of the note's first line; the
+   small gap keeps it from kissing the prose. The body span exists so the
+   text flows naturally after the plaque on the same line, wrapping below
+   when needed. */
+.ledger__note-loc { margin-right: .4rem; vertical-align: 1px; }
+.ledger__note-body { display: inline; }
 
 /* =========================================================================
    Roca Guía — a 2×2 grid of quadrant location plaques surrounding a circular
@@ -513,123 +519,192 @@ body {
 .guidestones {
   display: grid;
   grid-template-columns: 1fr;
-  gap: .85rem;
-  margin: .25rem 0;
+  gap: 1rem;
+  margin: .4rem 0 .2rem;
 }
 
 .guidestone {
   position: relative;
   border: 1px solid var(--gold-deep);
-  border-radius: 4px;
-  padding: 0;
+  border-radius: 6px;
+  padding: 14px;
   background:
-    radial-gradient(circle at 50% 50%, rgba(243,233,207,.85) 0%, rgba(232,220,192,.55) 60%, rgba(212,179,92,.18) 100%),
-    repeating-linear-gradient(135deg, rgba(168,133,63,.05) 0 8px, transparent 8px 16px);
+    radial-gradient(circle at 50% 50%, rgba(243,233,207,.9) 0%, rgba(232,220,192,.6) 55%, rgba(212,179,92,.15) 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(232,220,192,.55),
-    0 1px 0 rgba(0,0,0,.05);
+    inset 0 0 0 1px rgba(232,220,192,.7),
+    inset 0 0 14px rgba(168,133,63,.10),
+    0 2px 4px rgba(0,0,0,.06);
 }
+/* Four small gilded corner notches — the kind you'd ink at the corners of
+   a hand-drawn map plaque. They mark the bounds of the stone's "page". */
+.guidestone::before,
+.guidestone::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--gold-deep);
+  opacity: .55;
+  pointer-events: none;
+}
+.guidestone::before {
+  top: 3px; left: 3px;
+  border-right: none; border-bottom: none;
+}
+.guidestone::after {
+  bottom: 3px; right: 3px;
+  border-left: none; border-top: none;
+}
+
 .guidestone__remove {
   position: absolute;
-  top: 4px; right: 4px;
+  top: 8px; right: 8px;
   width: 24px;
   height: 24px;
-  background: rgba(232,220,192,.7);
+  background: rgba(243,233,207,.85);
   border: 1px solid transparent;
   color: var(--ink-faint);
   cursor: pointer;
   display: grid;
   place-items: center;
   padding: 0;
-  border-radius: 2px;
-  z-index: 2;
+  border-radius: 50%;
+  z-index: 3;
   transition: color .14s, border-color .14s, background .14s;
 }
 .guidestone__remove:hover {
   color: var(--blood);
   border-color: rgba(122,26,23,.4);
-  background: rgba(232,220,192,.95);
+  background: rgba(243,233,207,1);
 }
-.guidestone__remove svg { width: .72em; height: .72em; display: block; }
+.guidestone__remove svg { width: .7em; height: .7em; display: block; }
 
-/* The 2×2 grid of quadrants. The center cell is overlaid via positioned
-   pseudo so the 4 inputs stay on a clean diagonal cross — easier to read
-   as "north / east / south / west" of the stone. */
+/* A near-square map plaque. The cross of four cardinal cells is the
+   primary structure; the center medallion sits on top at the intersection. */
 .guidestone__grid {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  aspect-ratio: 1.6;
-  min-height: 200px;
+  aspect-ratio: 1.15;
+  min-height: 220px;
+  border: 1px solid rgba(122,90,40,.32);
+  border-radius: 3px;
+  background:
+    /* a subtle inset wash so the cells read as carved into the parchment */
+    radial-gradient(ellipse at 50% 50%, rgba(243,233,207,.45) 0%, transparent 65%);
 }
-.guidestone__grid::before {
-  /* The dividing cross between quadrants — drawn as inset 1px lines so it
-     reads like inked rules on a parchment plaque. */
+/* Dashed inked cross between quadrants — softer than a solid hairline,
+   gives the plaque a hand-drawn character without competing with the inputs. */
+.guidestone__grid::before,
+.guidestone__grid::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to bottom, transparent calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-    linear-gradient(to right,  transparent calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  background-image: linear-gradient(to right, rgba(122,90,40,.45) 0 5px, transparent 5px 10px);
+  background-size: 10px 1px;
+  background-repeat: repeat-x;
   pointer-events: none;
+  opacity: .85;
 }
+.guidestone__grid::before {
+  /* vertical line (rotate the horizontal dash pattern) */
+  left: 50%;
+  top: 12%;
+  bottom: 12%;
+  width: 1px;
+  background-image: linear-gradient(to bottom, rgba(122,90,40,.45) 0 5px, transparent 5px 10px);
+  background-size: 1px 10px;
+  background-repeat: repeat-y;
+  transform: translateX(-.5px);
+}
+.guidestone__grid::after {
+  /* horizontal line */
+  top: 50%;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  transform: translateY(-.5px);
+}
+
 .guidestone__quad {
   display: grid;
   place-items: center;
-  padding: 0.5rem;
+  padding: .5rem;
   min-width: 0;
+  position: relative;
 }
 .guidestone__quad--tl { grid-area: 1 / 1; }
 .guidestone__quad--tr { grid-area: 1 / 2; }
 .guidestone__quad--bl { grid-area: 2 / 1; }
 .guidestone__quad--br { grid-area: 2 / 2; }
 
+/* Tiny direction tick marks at the outer edges of each quadrant — small
+   serifs that subtly nod to compass points without naming them. */
+.guidestone__quad::before {
+  content: "";
+  position: absolute;
+  width: 1px;
+  height: 6px;
+  background: var(--gold-deep);
+  opacity: .55;
+}
+.guidestone__quad--tl::before,
+.guidestone__quad--tr::before { top: 0; left: 50%; }
+.guidestone__quad--bl::before,
+.guidestone__quad--br::before { bottom: 0; left: 50%; transform: rotate(180deg); }
+
 .guidestone__input {
-  width: 5ch;
+  width: 4.5ch;
   text-align: center;
   background: transparent;
   border: none;
-  border-bottom: 1.5px solid transparent;
+  border-bottom: 1.5px solid rgba(122,90,40,.3);
   font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
-  padding: .2rem .15rem;
+  padding: .25rem .15rem .15rem;
   outline: none;
   -webkit-appearance: none;
   letter-spacing: .04em;
+  line-height: 1;
 }
-.guidestone__input::placeholder { color: rgba(122, 90, 40, .35); }
+.guidestone__input::placeholder { color: rgba(122, 90, 40, .3); font-style: italic; }
 .guidestone__input:focus { border-bottom-color: var(--blood); }
 
+/* Center medallion — the stone itself. Smaller than the quadrant area so
+   the cross is visible reaching all four edges, larger than the quadrant
+   inputs so the eye reads it as the focal point. Holds a decorative
+   obelisk icon — no input; this stone has no number of its own, only the
+   four locations radiating from it. */
 .guidestone__center {
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 78px;
-  height: 78px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 35% 30%, rgba(255,250,235,.95) 0%, rgba(243,233,207,.9) 50%, rgba(212,179,92,.4) 100%);
-  border: 2px solid var(--gold-deep);
+    radial-gradient(circle at 35% 30%, rgba(255,250,235,1) 0%, rgba(243,233,207,.95) 45%, rgba(212,179,92,.55) 100%);
+  border: 1.5px solid var(--gold-deep);
   box-shadow:
-    inset 0 0 0 1px rgba(232,220,192,.85),
-    0 2px 6px rgba(0,0,0,.18);
+    inset 0 0 0 1px rgba(232,220,192,.95),
+    inset 0 -2px 4px rgba(168,133,63,.25),
+    0 3px 7px rgba(0,0,0,.18);
   display: grid;
   place-items: center;
-  z-index: 1;
-}
-.guidestone__input--center {
-  width: 4ch;
-  font-size: 1.25rem;
+  z-index: 2;
+  /* Icon size — the SVG inside renders at this font-size via 1em width/height. */
+  font-size: 38px;
   color: var(--blood);
-  font-weight: 400;
+}
+.guidestone__center svg {
+  display: block;
+  filter: drop-shadow(0 1px 0 rgba(255,250,230,.7));
 }
 
-/* On wider viewports lay two stones side by side. The card keeps its own
-   aspect ratio, just renders narrower. */
-@media (min-width: 560px) {
+/* On wider viewports lay two stones side by side. */
+@media (min-width: 640px) {
   .guidestones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -1389,103 +1464,101 @@ body {
   margin: 0;
 }
 
-/* --- Rubric divider inside a card (Habilidades / Vitalidad / …) ----- */
-.gamesheet__rubric {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: .55rem;
-  margin: .5rem 0 .2rem;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .62rem;
-  letter-spacing: .2em;
-  text-transform: lowercase;
-  color: var(--blood);
-}
-.gamesheet__rubric-mark {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-deep) 70%);
-  opacity: .85;
-}
-.gamesheet__rubric-mark:last-child {
-  background: linear-gradient(90deg, var(--gold-deep) 30%, transparent);
-}
-
-/* --- Heroes section header (above the cards) ------------------------ */
-.gamesheet__heroes-head {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: .75rem;
-  margin: .6rem 0 .15rem;
-}
-.gamesheet__heroes-mark {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold) 70%);
-  opacity: .8;
-}
-.gamesheet__heroes-mark:last-child {
-  background: linear-gradient(90deg, var(--gold) 30%, transparent);
-}
-.gamesheet__heroes-title {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-weight: 400;
-  font-size: 1.2rem;
-  margin: 0;
-  color: var(--ink);
-  letter-spacing: .04em;
-}
-.gamesheet__heroes-title::first-letter { color: var(--blood); }
+/* =========================================================================
+   Héroes — heraldic roll. Each hero gets a portrait page (spine + content)
+   in an illuminated codex. Per-character accent colors drive the medallion
+   rim, illuminated name cap, and focus rings.
+   ========================================================================= */
 
 .gamesheet__heroes {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 1.4rem;
+  margin: .5rem 0 0;
 }
 
-/* Add-hero card — a dashed-bordered placeholder that occupies a grid slot
-   beside the real heroes. When empty (no heroes selected) it expands its
-   minimum height so it feels like a proper call-to-action rather than a
-   trailing afterthought. */
+/* Add-hero card — an empty page in the codex, waiting for a hero to be
+   inscribed. Matches the hero card's silhouette so it slots into the grid
+   without looking like an afterthought. */
 .gamesheet__add-hero {
   appearance: none;
   -webkit-appearance: none;
+  position: relative;
   background:
-    repeating-linear-gradient(135deg, rgba(168,133,63,.04) 0 6px, transparent 6px 14px),
-    rgba(232,220,192,.18);
+    radial-gradient(circle at 50% 35%, rgba(255,250,230,.55), rgba(232,220,192,.25) 65%);
   border: 1.5px dashed rgba(168,133,63,.55);
-  border-radius: 4px;
-  color: var(--ink-soft);
+  border-radius: 6px;
+  color: var(--gold-deep);
   cursor: pointer;
-  padding: 1.4rem 1rem;
-  min-height: 96px;
+  padding: 1.6rem 1rem 1.5rem;
+  min-height: 132px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: .5rem;
+  gap: .85rem;
   font: inherit;
   text-align: center;
-  transition: color .15s, border-color .15s, background .15s, transform .08s;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hero-rise .55s cubic-bezier(.2,.7,.2,1) forwards;
+  animation-delay: calc(var(--hero-i, 0) * 80ms);
+  transition: color .18s, border-color .18s, background .18s, transform .08s;
 }
 .gamesheet__add-hero:hover {
   color: var(--blood);
   border-color: var(--blood);
+  border-style: solid;
   background:
-    repeating-linear-gradient(135deg, rgba(122,26,23,.04) 0 6px, transparent 6px 14px),
-    rgba(232,220,192,.28);
+    radial-gradient(circle at 50% 35%, rgba(255,250,230,.85), rgba(212,179,92,.18) 65%);
 }
 .gamesheet__add-hero:active { transform: translateY(1px); }
-.gamesheet__add-hero[data-empty="true"] { min-height: 168px; }
+@media (prefers-reduced-motion: reduce) {
+  .gamesheet__add-hero { opacity: 1; transform: none; animation: none; }
+}
+
+/* Empty-state expands the placeholder so it commands the page when there
+   are no heroes yet — the only call-to-action on an otherwise blank tab. */
+.gamesheet__add-hero[data-empty="true"] {
+  min-height: 280px;
+  padding: 2.4rem 1.4rem;
+  gap: 1.2rem;
+}
+
+/* The mark is a small medallion — empty rim with a centered plus, echoing
+   the real hero medallion so the affordance is unmistakable. */
 .gamesheet__add-hero-mark {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  border: 1px solid currentColor;
+  border: 1.5px solid currentColor;
   color: inherit;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
+  background: rgba(255,250,230,.45);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,250,230,.7),
+    inset 0 -3px 6px rgba(168,133,63,.18);
+  position: relative;
+  transition: background .18s;
+}
+.gamesheet__add-hero-mark::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px dashed currentColor;
+  opacity: .35;
+  pointer-events: none;
+}
+.gamesheet__add-hero[data-empty="true"] .gamesheet__add-hero-mark {
+  width: 72px;
+  height: 72px;
+  font-size: 1.65rem;
+}
+.gamesheet__add-hero:hover .gamesheet__add-hero-mark {
+  background: rgba(255,250,230,.85);
 }
 .gamesheet__add-hero-mark svg {
   width: 1em;
@@ -1495,9 +1568,12 @@ body {
 .gamesheet__add-hero-label {
   font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .72rem;
-  letter-spacing: .18em;
+  letter-spacing: .2em;
   text-transform: lowercase;
   color: inherit;
+}
+.gamesheet__add-hero[data-empty="true"] .gamesheet__add-hero-label {
+  font-size: .82rem;
 }
 
 /* Hero picker — modal grid of available heroes, each a sigil + name card */
@@ -1512,168 +1588,404 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .55rem;
 }
+/* Per-character accents shared with the main hero card. The picker uses the
+   same `--hero-accent` token so the medallion rim and illuminated cap read
+   consistently. */
 .hero-picker__btn {
   appearance: none;
   -webkit-appearance: none;
+  --hero-accent: var(--gold);
+  --hero-accent-deep: var(--gold-deep);
+  --hero-accent-soft: rgba(168, 133, 63, .18);
   width: 100%;
   background:
-    radial-gradient(circle at 0% 0%, rgba(212,179,92,.18), transparent 50%),
-    linear-gradient(180deg, rgba(243,233,207,.7), rgba(232,220,192,.5));
-  border: 1px solid var(--ink-faint);
-  border-radius: 4px;
-  padding: .85rem .6rem;
+    radial-gradient(circle at 50% 0%, rgba(255,250,230,.7), rgba(232,220,192,.45) 70%);
+  border: 1px solid var(--hero-accent-deep);
+  border-radius: 6px;
+  padding: 1rem .6rem .9rem;
   cursor: pointer;
   font: inherit;
   color: var(--ink);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .35rem;
-  transition: color .14s, border-color .14s, background .14s, transform .08s;
+  gap: .55rem;
+  transition: border-color .14s, background .14s, transform .08s, box-shadow .14s;
 }
+.hero-picker__btn[data-hero="elgan"]   { --hero-accent: #b8862e; --hero-accent-deep: #7c5612; --hero-accent-soft: rgba(184, 134, 46, .22); }
+.hero-picker__btn[data-hero="gerdwyn"] { --hero-accent: #6c8a4d; --hero-accent-deep: #3f5a27; --hero-accent-soft: rgba(108, 138, 77, .22); }
+.hero-picker__btn[data-hero="iunis"]   { --hero-accent: #7891aa; --hero-accent-deep: #455d75; --hero-accent-soft: rgba(120, 145, 170, .22); }
+.hero-picker__btn[data-hero="osbert"]  { --hero-accent: #a45628; --hero-accent-deep: #6a3614; --hero-accent-soft: rgba(164, 86, 40, .22); }
 .hero-picker__btn:hover {
-  color: var(--blood);
-  border-color: var(--blood);
   background:
-    radial-gradient(circle at 0% 0%, rgba(212,179,92,.28), transparent 50%),
-    linear-gradient(180deg, rgba(243,233,207,.85), rgba(232,220,192,.65));
+    radial-gradient(circle at 50% 0%, rgba(255,250,230,.95), var(--hero-accent-soft) 70%);
+  box-shadow: 0 0 0 3px var(--hero-accent-soft);
 }
 .hero-picker__btn:active { transform: translateY(1px); }
+/* Picker medallion — a smaller version of the hero card's seal. */
 .hero-picker__btn .gamesheet__sigil {
-  width: 40px;
-  height: 40px;
-  color: var(--blood);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,250,230,1), rgba(243,233,207,.95) 45%, var(--hero-accent-soft) 100%);
+  border: 1.5px solid var(--hero-accent);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,250,230,.85),
+    inset 0 -3px 5px rgba(168,133,63,.22);
+  color: var(--hero-accent-deep);
+  display: grid;
+  place-items: center;
+  margin-bottom: .15rem;
 }
 .hero-picker__btn .gamesheet__sigil svg {
-  width: 38px;
-  height: 38px;
+  width: 64%;
+  height: 64%;
 }
 .hero-picker__name {
   font-family: 'IM Fell English Local', Georgia, serif;
   font-size: 1.05rem;
-  letter-spacing: .04em;
+  letter-spacing: .08em;
   text-transform: uppercase;
+  color: var(--ink);
 }
 .hero-picker__name::first-letter {
-  color: var(--blood);
-  font-size: 1.15em;
+  color: var(--hero-accent-deep);
+  font-size: 1.18em;
 }
 
-/* --- Player card ---------------------------------------------------- */
-.gamesheet__player {
-  position: relative;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(212,179,92,.14), transparent 45%),
-    linear-gradient(180deg, rgba(243,233,207,.62), rgba(232,220,192,.48));
-  border: 1px solid var(--ink-faint);
-  border-radius: 4px;
-  padding: .25rem .9rem 1rem;
-  box-shadow:
-    inset 0 0 0 1px rgba(232,220,192,.55),
-    0 1px 0 rgba(0,0,0,.05);
+/* --- Hero portrait card --------------------------------------------- */
+/* Per-character accent palette. The default falls back to the gold scheme;
+   each [data-hero] sets a distinct rim/ink so cards read as individuals
+   even when stacked. The values are tuned to harmonise with the parchment
+   palette — warm gold (Elgan), sage (Gerdwyn), silver-blue (Iunis),
+   rust amber (Osbert). */
+.hero {
+  --hero-accent: var(--gold);
+  --hero-accent-deep: var(--gold-deep);
+  --hero-accent-soft: rgba(168, 133, 63, .18);
+  --hero-tint: rgba(168, 133, 63, .06);
 }
-.gamesheet__player::before {
+.hero[data-hero="elgan"]   { --hero-accent: #b8862e; --hero-accent-deep: #7c5612; --hero-accent-soft: rgba(184, 134, 46, .22); --hero-tint: rgba(184, 134, 46, .07); }
+.hero[data-hero="gerdwyn"] { --hero-accent: #6c8a4d; --hero-accent-deep: #3f5a27; --hero-accent-soft: rgba(108, 138, 77, .22); --hero-tint: rgba(108, 138, 77, .07); }
+.hero[data-hero="iunis"]   { --hero-accent: #7891aa; --hero-accent-deep: #455d75; --hero-accent-soft: rgba(120, 145, 170, .22); --hero-tint: rgba(120, 145, 170, .07); }
+.hero[data-hero="osbert"]  { --hero-accent: #a45628; --hero-accent-deep: #6a3614; --hero-accent-soft: rgba(164, 86, 40, .22); --hero-tint: rgba(164, 86, 40, .07); }
+
+/* The card: parchment page with gilded inner stroke and a subtle washed-in
+   tint of the hero accent. Single-column flow — name+location header, a
+   gold divider, then the stat groups. No fixed-width spine so the card
+   adapts to whatever width the page gives it. */
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.2rem 1.3rem 1.15rem;
+  border: 1px solid var(--hero-accent-deep);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 0% 0%, var(--hero-tint), transparent 50%),
+    radial-gradient(circle at 100% 100%, var(--hero-tint), transparent 55%),
+    linear-gradient(180deg, rgba(243,233,207,.85), rgba(232,220,192,.65));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,250,230,.7),
+    inset 0 0 30px rgba(168,133,63,.08),
+    0 6px 16px rgba(0,0,0,.12);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hero-rise .55s cubic-bezier(.2,.7,.2,1) forwards;
+  animation-delay: calc(var(--hero-i, 0) * 80ms);
+}
+@keyframes hero-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero { opacity: 1; transform: none; animation: none; }
+}
+
+/* Small gilded corner notches — a quiet illuminated mark, not loud. */
+.hero::before {
   content: "";
   position: absolute;
-  top: -1px; left: 12%; right: 12%;
+  top: -1px; left: -1px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--hero-accent);
+  border-right: none;
+  border-bottom: none;
+  opacity: .55;
+  pointer-events: none;
+  border-top-left-radius: 6px;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; right: -1px;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--hero-accent);
+  border-left: none;
+  border-top: none;
+  opacity: .55;
+  pointer-events: none;
+  border-bottom-right-radius: 6px;
+}
+
+/* --- Header: NAME  (en la 101)  [×] ---------------------------------- */
+.hero__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .55rem .95rem;
+  padding-bottom: .9rem;
+  border-bottom: 1px solid var(--hero-accent-soft);
+  position: relative;
+}
+/* A second, brighter rule painted on top of the dashed border — gives the
+   underline a double-stroke gilt feel like an illuminated headline. */
+.hero__head::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 25%;
+  bottom: -1px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
-  opacity: .75;
+  background: linear-gradient(90deg, var(--hero-accent) 0%, transparent 100%);
+  opacity: .55;
+  pointer-events: none;
 }
-.gamesheet__player-head {
-  display: grid;
-  grid-template-columns: 34px auto 1fr auto;
-  align-items: center;
-  gap: .55rem;
-  padding: .75rem 0 .55rem;
-  border-bottom: 1px dashed rgba(122,90,40,.35);
-  margin-bottom: .55rem;
+
+.hero__name {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.6rem;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255,250,230,.5);
 }
-.gamesheet__player-remove {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
+.hero__name::first-letter {
+  color: var(--hero-accent-deep);
+  font-size: 1.35em;
+  letter-spacing: 0;
+  margin-right: .04em;
+}
+@media (min-width: 720px) {
+  .hero__name { font-size: 1.85rem; }
+}
+
+/* The location reads inline as "(en la 101)" — parens via pseudos so the
+   input remains a normal flow element. */
+.hero__loc {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .5rem;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  color: var(--hero-accent-deep);
+  font-size: 1.05rem;
+}
+.hero__loc::before,
+.hero__loc::after {
+  font-size: 1.2rem;
+  line-height: 1;
+  opacity: .8;
+  color: var(--hero-accent-deep);
+}
+.hero__loc::before { content: '('; }
+.hero__loc::after  { content: ')'; }
+.hero__loc-tag {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .65rem;
+  letter-spacing: .18em;
+  color: var(--ash);
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+/* Location plaque carries the hero's accent — tinted gold/sage/blue/rust. */
+.hero__loc .gamesheet__input--location {
+  background: linear-gradient(180deg, rgba(255,250,230,.9), var(--hero-accent-soft));
+  border: 1px solid var(--hero-accent-deep);
+  color: var(--hero-accent-deep);
+}
+.hero__loc .gamesheet__input--location:focus {
+  border-color: var(--hero-accent);
+  background: linear-gradient(180deg, rgba(255,250,230,1), var(--hero-accent-soft));
+  box-shadow: 0 0 0 3px var(--hero-accent-soft);
+}
+
+/* The dismissal × — pushed to the right end of the header row via auto margin. */
+.hero__remove {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  background: rgba(255,250,230,.5);
   border: 1px solid transparent;
   color: var(--ink-faint);
   cursor: pointer;
-  width: 28px;
-  height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 2px;
   padding: 0;
-  transition: color .14s, border-color .14s, background .14s;
+  border-radius: 50%;
+  flex: none;
+  align-self: center;
+  transition: color .15s, border-color .15s, background .15s, transform .08s;
 }
-.gamesheet__player-remove:hover {
+.hero__remove:hover {
   color: var(--blood);
-  border-color: rgba(122,26,23,.35);
-  background: rgba(122,26,23,.06);
+  border-color: rgba(122,26,23,.4);
+  background: rgba(255,250,230,.95);
 }
-.gamesheet__player-remove svg { width: .75em; height: .75em; display: block; }
-.gamesheet__sigil {
-  width: 32px;
-  height: 32px;
-  display: grid; place-items: center;
-  color: var(--blood);
-  filter: drop-shadow(0 1px 0 rgba(0,0,0,.18));
+.hero__remove:active { transform: scale(.94); }
+.hero__remove svg { width: .68em; height: .68em; display: block; }
+
+/* --- Content column --- */
+.hero__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
 }
-.gamesheet__sigil svg {
-  width: 30px;
-  height: 30px;
-  display: block;
+
+/* --- Group rubric: small mark + small caps title + thin underline --- */
+.hero__group { display: flex; flex-direction: column; gap: .6rem; }
+.hero__rubric {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: .55rem;
+  padding-bottom: .1rem;
 }
-.gamesheet__player-name {
+.hero__rubric-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hero-accent);
+  box-shadow:
+    0 0 0 2px rgba(255,250,230,.85),
+    0 0 0 3px var(--hero-accent-deep);
+  flex: none;
+}
+.hero__rubric-title {
   font-family: 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
-  font-size: 1.35rem;
+  font-size: 1.02rem;
   margin: 0;
   color: var(--ink);
-  letter-spacing: .04em;
+  letter-spacing: .14em;
   text-transform: uppercase;
 }
-.gamesheet__player-name::first-letter {
-  color: var(--blood);
-  font-size: 1.2em;
-  letter-spacing: 0;
+.hero__rubric-title::first-letter {
+  color: var(--hero-accent-deep);
 }
-.gamesheet__player-rule {
+.hero__rubric-line {
   height: 1px;
-  background: linear-gradient(90deg, var(--gold-deep) 0%, transparent 90%);
-  opacity: .7;
+  background: linear-gradient(90deg, var(--hero-accent) 0%, transparent 90%);
+  opacity: .55;
 }
 
-.gamesheet__player-body {
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-}
-
-/* Stat grids inside player cards */
-.gamesheet__stats {
+/* --- Cells grid: small inscribed plaques with value above, label below.
+   auto-fill keeps cells at a comfortable fixed width and lets the row wrap
+   to as many columns as the card width allows — Habilidades flows as 6 in
+   one row on desktop and 3+3 (or 2+2+2) on phones. */
+.hero__cells {
   display: grid;
-  gap: .45rem;
+  grid-template-columns: repeat(auto-fill, 84px);
+  gap: .6rem .5rem;
+  justify-content: start;
 }
-.gamesheet__stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.gamesheet__stats--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (max-width: 380px) {
-  .gamesheet__stats--3,
-  .gamesheet__stats--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 360px) {
+  .hero__cells { grid-template-columns: repeat(auto-fill, 76px); }
 }
-.gamesheet__stat {
+.hero__cell {
   display: flex;
   flex-direction: column;
-  gap: .2rem;
-  min-width: 0;
   align-items: stretch;
-  text-align: center;
+  gap: .3rem;
+  min-width: 0;
 }
-.gamesheet__stat-label {
+.hero__cell-input {
+  /* Inscribed plaque — engraved feel, no fussy border, just inset shadow */
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.5rem;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(255,250,230,.55), var(--hero-accent-soft) 100%);
+  border: 1px solid rgba(122,90,40,.22);
+  border-radius: 3px;
+  padding: .45rem .25rem .35rem;
+  text-align: center;
+  box-shadow:
+    inset 0 1px 2px rgba(122,90,40,.18),
+    inset 0 0 0 1px rgba(255,250,230,.45);
+  outline: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.hero__cell-input::placeholder { color: rgba(122, 90, 40, .32); font-style: italic; }
+.hero__cell-input:focus {
+  border-color: var(--hero-accent);
+  background: linear-gradient(180deg, rgba(255,250,230,.85), var(--hero-accent-soft));
+  box-shadow:
+    inset 0 1px 2px rgba(122,90,40,.18),
+    0 0 0 3px var(--hero-accent-soft);
+}
+.hero__cell-label {
   font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .56rem;
+  font-size: .58rem;
   letter-spacing: .14em;
   line-height: 1.15;
   text-transform: lowercase;
   color: var(--ash);
+  text-align: center;
+}
+
+/* Vitalidad has only 3 cells — give them more presence (wider plaques). */
+.hero__group[data-group="vitality"] .hero__cell-input {
+  font-size: 1.7rem;
+  padding: .55rem .25rem .45rem;
+}
+
+/* --- Items / Notas — quieter than the stats, like inked marginalia --- */
+.hero__items {
+  position: relative;
+  padding: .35rem .85rem .7rem;
+  background:
+    linear-gradient(180deg, rgba(255,250,230,.45), rgba(232,220,192,.3));
+  border: 1px solid rgba(122,90,40,.22);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255,250,230,.55);
+}
+.hero__items .ledger { margin: 0; }
+.hero__items .ledger__head {
+  margin: .35rem 0 .25rem;
+  padding: 0;
+}
+.hero__items .ledger__rule {
+  background: linear-gradient(90deg, var(--hero-accent) 0%, var(--hero-accent) 30%, transparent 100%);
+}
+.hero__items .ledger__add {
+  border-color: var(--hero-accent-soft);
+  color: var(--hero-accent-deep);
+}
+.hero__items .ledger__add:hover {
+  color: var(--hero-accent-deep);
+  border-color: var(--hero-accent);
+  background: var(--hero-accent-soft);
+}
+
+@media (min-width: 720px) {
+  .hero { padding: 1.4rem 1.6rem 1.3rem; gap: 1.4rem; }
+  /* Habilidades is the only group with 6 cells. On desktop force it into a
+     3-column grid so the six skills read as two tidy rows of three, instead
+     of stretching into a single 6-wide strip that loses its rhythm against
+     the 3-cell Vitalidad and 4-cell Recursos rows below it. */
+  .hero__group[data-group="skills"] .hero__cells {
+    grid-template-columns: repeat(3, 84px);
+  }
 }
 
 /* iOS tap highlight off */
@@ -2275,29 +2587,3 @@ button, [role="tab"], .ledger__check {
   }
 }
 
-/* Two-column heroes layout once we have room for it. */
-@media (min-width: 720px) and (max-width: 959.98px) {
-  .gamesheet__heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .gamesheet__player { padding: .25rem 1.1rem 1.1rem; }
-  .gamesheet__player-name { font-size: 1.45rem; }
-}
-
-/* Desktop — each hero card occupies a full row and the three stat groups
-   pivot into a 3-column grid so the card stays shallow vertically. The
-   Habilidades column is widest because it carries 6 stats over two rows;
-   Recursos is slightly wider than Vitalidad to fit its four-column track. */
-@media (min-width: 960px) {
-  .gamesheet__heroes { grid-template-columns: 1fr; }
-  .gamesheet__player { padding: .25rem 1.4rem 1.2rem; }
-  .gamesheet__player-name { font-size: 1.45rem; }
-  .gamesheet__player-stats {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr 1.3fr;
-    gap: 1.4rem;
-    align-items: start;
-  }
-  /* The stat-group's own rubric/grid stack vertically inside each column. */
-  .gamesheet__stat-group { min-width: 0; }
-  /* Stat input plaques get a bit bigger now that there's room. */
-  .gamesheet__input--stat { font-size: 1.2rem; padding: .55rem .25rem; }
-}
