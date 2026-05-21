@@ -2,19 +2,22 @@ import { COMMANDS, isNoOp, defaultSession } from './commands.js';
 import { History } from './history.js';
 import { loadState, saveState, requestPersistence } from './db.js';
 
+const VALID_TABS = new Set(['exploration', 'statuses', 'heroes']);
+
 const initialState = () => ({
   doc: {
-    day: 1,
-    timeOfDay: 'dawn',
     tab: 'exploration',
-    menhirs: [],
     quests: [],
     sideQuests: [],
-    characters: [],
-    locations: [],
     notes: [],
-    secrets: [],
-    factions: [],
+    // Shared state — previously buried in `session`. Each entry is
+    // `{ id, text, location }` except guideStones which has a special shape
+    // (center + 4 quadrants). Capped at 4 guide stones by the UI.
+    timeTokens: [],
+    partners: [],
+    guardians: [],
+    perditionKings: [],
+    guideStones: [],
     statuses: {},
     chapterTime: Array.from({ length: 10 }, () => 0),
     selectedChapter: 0,
@@ -22,44 +25,46 @@ const initialState = () => ({
   },
 });
 
-// Hydration helper: fills missing keys in persisted `session` so existing
-// users get a full-shape object even if they last saved before a field existed.
+// Defensive shape-filler for `session`. Not a migration — just ensures the
+// object always has every field the UI assumes, with sane defaults, so old
+// or partial persisted state can't crash render paths.
 const ensureSession = (s) => {
   const base = defaultSession();
   if (!s || typeof s !== 'object') return base;
   return {
     ...base,
     ...s,
-    companion:     { ...base.companion,     ...(s.companion     || {}) },
-    guardians:     { ...base.guardians,     ...(s.guardians     || {}) },
-    guideStone:    { ...base.guideStone,    ...(s.guideStone    || {}) },
-    perditionKing: { ...base.perditionKing, ...(s.perditionKing || {}) },
+    selectedHeroes: Array.isArray(s.selectedHeroes)
+      ? [...new Set(s.selectedHeroes.filter((i) => Number.isInteger(i) && i >= 0 && i < 4))]
+      : [],
     players: Array.from({ length: 4 }, (_, i) => {
-      // Spread base first so the player gets every field the current shape
-      // requires; user data overrides where present. Legacy `skills` arrays
-      // from older saves survive via `...p` but are no longer required.
       const p = s.players?.[i] || {};
-      return { ...base.players[0], ...p };
+      return {
+        ...base.players[0],
+        ...p,
+        items: Array.isArray(p.items) ? p.items : [],
+      };
     }),
   };
 };
 
-// Legacy `statuses[id]` stored a single number (highest filled pip). New format
-// is an array of filled pip indices, so pips can be toggled independently.
-const migrateStatuses = (raw) => {
+// Sort each status's filled pips so the renderer can trust the ordering.
+// Empty arrays are dropped — `statuses` only carries entries for statuses
+// with at least one filled pip.
+const ensureStatuses = (raw) => {
   const out = {};
   for (const [id, v] of Object.entries(raw || {})) {
-    if (typeof v === 'number') {
-      if (v > 0) out[id] = Array.from({ length: v }, (_, i) => i + 1);
-    } else if (Array.isArray(v) && v.length > 0) {
+    if (Array.isArray(v) && v.length > 0) {
       out[id] = [...v].sort((a, b) => a - b);
     }
   }
   return out;
 };
 
-const STRIPPED_TYPES = new Set(['SET_STATUS_VALUE', 'SET_ACTIVE_TAB', 'SET_SELECTED_CHAPTER']);
-const isLiveCommand = (cmd) => cmd && !STRIPPED_TYPES.has(cmd.type);
+// Tab / non-content commands aren't worth keeping in undo history.
+const STRIPPED_TYPES = new Set(['SET_ACTIVE_TAB', 'SET_SELECTED_CHAPTER']);
+const isLiveCommand = (cmd) =>
+  cmd && !STRIPPED_TYPES.has(cmd.type) && cmd.type in COMMANDS;
 
 // Clamp chapterTime[0..9] into integers 0..6 (each wheel has six wedges).
 // Falls back to zero for any missing or malformed value so the renderer can
@@ -70,6 +75,8 @@ const ensureChapterTime = (raw) =>
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(0, Math.min(6, Math.floor(n))) : 0;
   });
+
+const ensureTab = (raw) => (VALID_TABS.has(raw) ? raw : 'exploration');
 
 class Store {
   constructor() {
@@ -87,7 +94,8 @@ class Store {
         this.state = {
           doc: {
             ...merged,
-            statuses: migrateStatuses(merged.statuses),
+            tab: ensureTab(merged.tab),
+            statuses: ensureStatuses(merged.statuses),
             chapterTime: ensureChapterTime(merged.chapterTime),
             session: ensureSession(merged.session),
           },
@@ -133,7 +141,8 @@ class Store {
     this.state = {
       doc: {
         ...merged,
-        statuses: migrateStatuses(merged.statuses),
+        tab: ensureTab(merged.tab),
+        statuses: ensureStatuses(merged.statuses),
         chapterTime: ensureChapterTime(merged.chapterTime),
         session: ensureSession(merged.session),
       },

@@ -117,13 +117,14 @@ promptCancel.addEventListener('click', () => settlePrompt(null));
 promptDialog.addEventListener('close', () => { if (promptResolver) settlePrompt(null); });
 promptDialog.onclick = (e) => { if (e.target === promptDialog) settlePrompt(null); };
 
-const askPrompt = ({ title, label, body, value = '', placeholder = '' }) =>
+const askPrompt = ({ title, label, body, value = '', placeholder = '', inputmode = '' }) =>
   new Promise((resolve) => {
     promptResolver = resolve;
     promptTitle.textContent = title;
     promptLabel.textContent = label;
     promptInput.value = value;
     promptInput.placeholder = placeholder;
+    promptInput.inputMode = inputmode || '';
     if (body) { promptBody.textContent = body; promptBody.hidden = false; }
     else { promptBody.hidden = true; }
     promptDialog.showModal();
@@ -164,6 +165,100 @@ const askConfirm = ({ title, body, confirmLabel = 'Tachar', cancelLabel = 'Conse
     confirmDialog.showModal();
   });
 
+const editDialog     = $('edit-dialog');
+const editTitle      = $('edit-title');
+const editLabelText  = $('edit-label-text');
+const editInputText  = $('edit-input-text');
+const editFieldLoc   = $('edit-field-loc');
+const editInputLoc   = $('edit-input-loc');
+const editForm       = editDialog.querySelector('form');
+const editCancel     = editDialog.querySelector('[data-edit-cancel]');
+
+let editResolver = null;
+const settleEdit = (value) => {
+  if (editResolver) { editResolver(value); editResolver = null; }
+  if (editDialog.open) editDialog.close();
+};
+editForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = editInputText.value.trim();
+  if (!text) { editInputText.focus(); return; }
+  const location = editFieldLoc.hidden ? null : editInputLoc.value.trim();
+  settleEdit({ text, location });
+});
+editCancel.addEventListener('click', () => settleEdit(null));
+editDialog.addEventListener('close', () => { if (editResolver) settleEdit(null); });
+editDialog.onclick = (e) => { if (e.target === editDialog) settleEdit(null); };
+
+// askEditItem opens a modal with a description field and an optional
+// location field. Resolves with `{text, location}` (location may be null
+// when hasLocation is false) or `null` on cancel.
+const askEditItem = ({
+  title,
+  textLabel = 'Descripción',
+  textValue = '',
+  textPlaceholder = '',
+  textAutocapitalize = 'sentences',
+  hasLocation = false,
+  locationValue = '',
+}) => new Promise((resolve) => {
+  editResolver = resolve;
+  editTitle.textContent = title;
+  editLabelText.textContent = textLabel;
+  editInputText.value = textValue;
+  editInputText.placeholder = textPlaceholder;
+  editInputText.setAttribute('autocapitalize', textAutocapitalize);
+  if (hasLocation) {
+    editFieldLoc.hidden = false;
+    editInputLoc.value = locationValue;
+  } else {
+    editFieldLoc.hidden = true;
+    editInputLoc.value = '';
+  }
+  editDialog.showModal();
+  requestAnimationFrame(() => {
+    editInputText.focus();
+    editInputText.select?.();
+  });
+});
+
+const heroPickerDialog = $('hero-picker-dialog');
+const heroPickerList   = $('hero-picker-list');
+const heroPickerCancel = heroPickerDialog.querySelector('[data-hero-picker-cancel]');
+
+let heroPickerResolver = null;
+const settleHeroPicker = (value) => {
+  if (heroPickerResolver) { heroPickerResolver(value); heroPickerResolver = null; }
+  if (heroPickerDialog.open) heroPickerDialog.close();
+};
+heroPickerCancel.addEventListener('click', () => settleHeroPicker(null));
+heroPickerDialog.addEventListener('close', () => { if (heroPickerResolver) settleHeroPicker(null); });
+heroPickerDialog.onclick = (e) => { if (e.target === heroPickerDialog) settleHeroPicker(null); };
+
+// askHeroPicker takes the indices of heroes the player can still add and
+// resolves with the chosen index — or null on cancel/dismiss. Buttons are
+// rebuilt every call so the list always reflects the current availability.
+const askHeroPicker = (availableIndices) => new Promise((resolve) => {
+  heroPickerResolver = resolve;
+  heroPickerList.replaceChildren();
+  for (const idx of availableIndices) {
+    const name = CHARACTER_NAMES[idx];
+    heroPickerList.append(
+      el('li', {},
+        el('button', {
+          type: 'button',
+          class: 'hero-picker__btn',
+          onclick: () => settleHeroPicker(idx),
+        },
+          sigilNode(idx),
+          el('span', { class: 'hero-picker__name' }, name),
+        ),
+      ),
+    );
+  }
+  heroPickerDialog.showModal();
+});
+
 /* -------------------------------------------------------------------------
    Utilidades
    ------------------------------------------------------------------------- */
@@ -192,211 +287,460 @@ const flourish = () =>
    Andanzas (exploración)
    ------------------------------------------------------------------------- */
 
-const TIME_SEGMENTS = [
-  { key: 'dawn',  iconName: 'sunRising',  label: 'Alba'     },
-  { key: 'noon',  iconName: 'sun',        label: 'Mediodía' },
-  { key: 'dusk',  iconName: 'sunSetting', label: 'Ocaso'    },
-  { key: 'night', iconName: 'moon',       label: 'Noche'    },
-];
+/* -------------------------------------------------------------------------
+   Ledger sections — compact heading + optional list. The add action lives
+   inside the heading (chip on the right), so an empty section reads as a
+   single line with a call-to-action, not a wasted paragraph.
+   ------------------------------------------------------------------------- */
 
-const MENHIR_STATES = ['dormant', 'lit', 'extinguished'];
-const MENHIR_ICONS  = { dormant: 'circle', lit: 'star', extinguished: 'cross' };
-const MENHIR_LABELS = { dormant: 'durmiente', lit: 'encendido', extinguished: 'apagado' };
-const cycleMenhirState = (s) => MENHIR_STATES[(MENHIR_STATES.indexOf(s) + 1) % MENHIR_STATES.length];
+const renderLedgerHead = ({ title, addLabel, onAdd }) =>
+  el('header', { class: 'ledger__head' },
+    el('h3', { class: 'ledger__title' }, title),
+    el('span', { class: 'ledger__rule', 'aria-hidden': 'true' }),
+    onAdd
+      ? el('button', {
+          type: 'button',
+          class: 'ledger__add',
+          onclick: onAdd,
+        }, icon('plus'), el('span', { class: 'ledger__add-label' }, addLabel))
+      : null,
+  );
+
+const renderLedgerSection = ({ title, addLabel, onAdd, body }) => {
+  const section = el('section', { class: 'ledger' },
+    renderLedgerHead({ title, addLabel, onAdd }),
+  );
+  if (body) section.append(body);
+  return section;
+};
+
+const renderChecklistRows = (items, prefix, confirmRemove, editTitle = 'Editar') => {
+  if (items.length === 0) return null;
+  const list = el('ul', { class: 'ledger__list' });
+  items.forEach((it, idx) => {
+    list.append(
+      el('li', { class: 'ledger__row', dataset: { done: it.done ? 'true' : 'false' } },
+        el('button', {
+          type: 'button',
+          class: 'ledger__check',
+          'aria-label': it.done ? 'Marcar como abierta' : 'Marcar como cumplida',
+          onclick: () => store.dispatch(makeCommand(`TOGGLE_${prefix}`, {
+            id: it.id, from: !!it.done, to: !it.done,
+          })),
+        }, it.done ? icon('check') : null),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-body',
+          'aria-label': `Editar «${it.title}»`,
+          onclick: async () => {
+            const result = await askEditItem({
+              title: editTitle,
+              textLabel: 'Descripción',
+              textValue: it.title || '',
+              hasLocation: true,
+              locationValue: it.location || '',
+            });
+            if (!result) return;
+            const to = { ...it, title: result.text, location: result.location || '' };
+            if (to.title === it.title && to.location === (it.location || '')) return;
+            store.dispatch(makeCommand(`UPDATE_${prefix}`, { id: it.id, from: it, to }));
+          },
+        },
+          it.location ? el('span', { class: 'ledger__row-loc' }, it.location) : null,
+          el('span', { class: 'ledger__row-title' }, it.title),
+        ),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-del',
+          'aria-label': `Borrar ${it.title}`,
+          onclick: async () => {
+            const ok = await confirmRemove(it);
+            if (!ok) return;
+            store.dispatch(makeCommand(`REMOVE_${prefix}`, { from: it, index: idx }));
+          },
+        }, icon('cross')),
+      )
+    );
+  });
+  return list;
+};
+
+const renderNoteRows = (notes) => {
+  if (notes.length === 0) return null;
+  const list = el('ul', { class: 'ledger__list ledger__list--notes' });
+  notes.forEach((n, idx) => {
+    list.append(
+      el('li', { class: 'ledger__note' },
+        el('button', {
+          type: 'button',
+          class: 'ledger__note-text',
+          'aria-label': 'Editar nota',
+          onclick: async () => {
+            const result = await askEditItem({
+              title: 'Editar nota',
+              textLabel: '¿Qué se quiere recordar?',
+              textValue: n.text || '',
+            });
+            if (!result) return;
+            const to = { ...n, text: result.text };
+            if (to.text === (n.text || '')) return;
+            store.dispatch(makeCommand('UPDATE_NOTE', { id: n.id, from: n, to }));
+          },
+        }, n.text),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-del',
+          'aria-label': 'Borrar nota',
+          onclick: async () => {
+            const ok = await askConfirm({
+              title: '¿Tachar la nota?',
+              body: 'La nota se perderá.',
+            });
+            if (!ok) return;
+            store.dispatch(makeCommand('REMOVE_NOTE', { from: n, index: idx }));
+          },
+        }, icon('cross')),
+      )
+    );
+  });
+  return list;
+};
+
+const renderQuestRows = (quests) => {
+  if (quests.length === 0) return null;
+  const list = el('ul', { class: 'ledger__list' });
+  quests.forEach((q, idx) => {
+    list.append(
+      el('li', { class: 'ledger__row', dataset: { done: q.done ? 'true' : 'false' } },
+        el('button', {
+          type: 'button',
+          class: 'ledger__check',
+          'aria-label': q.done ? 'Marcar como abierta' : 'Marcar como cumplida',
+          onclick: () => store.dispatch(makeCommand('TOGGLE_QUEST', {
+            id: q.id, from: !!q.done, to: !q.done,
+          })),
+        }, q.done ? icon('check') : null),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-body',
+          'aria-label': `Editar «${q.title}»`,
+          onclick: async () => {
+            const result = await askEditItem({
+              title: 'Editar misión',
+              textLabel: '¿Qué se emprende?',
+              textValue: q.title || '',
+              hasLocation: true,
+              locationValue: q.location || '',
+            });
+            if (!result) return;
+            const to = { ...q, title: result.text, location: result.location || '' };
+            if (to.title === q.title && to.location === (q.location || '')) return;
+            store.dispatch(makeCommand('UPDATE_QUEST', { id: q.id, from: q, to }));
+          },
+        },
+          q.location ? el('span', { class: 'ledger__row-loc' }, q.location) : null,
+          el('span', { class: 'ledger__row-title' }, q.title),
+        ),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-del',
+          'aria-label': `Borrar ${q.title}`,
+          onclick: async () => {
+            const ok = await askConfirm({
+              title: '¿Tachar la misión?',
+              body: `«${q.title}» será arrancada del diario.`,
+            });
+            if (!ok) return;
+            store.dispatch(makeCommand('REMOVE_QUEST', { from: q, index: idx }));
+          },
+        }, icon('cross')),
+      )
+    );
+  });
+  return list;
+};
+
+// Shared state row — text on the left, optional location plaque, delete chip.
+// Used by the four text+location sections (Fichas, Partners, Rey, Guardianes).
+const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') => {
+  if (items.length === 0) return null;
+  const list = el('ul', { class: 'ledger__list' });
+  items.forEach((it, idx) => {
+    list.append(
+      el('li', { class: 'ledger__row ledger__row--text' },
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-body',
+          'aria-label': it.text ? `Editar «${it.text}»` : 'Editar',
+          onclick: async () => {
+            const result = await askEditItem({
+              title: editTitle,
+              textLabel: 'Descripción',
+              textValue: it.text || '',
+              hasLocation: true,
+              locationValue: it.location || '',
+            });
+            if (!result) return;
+            const to = { ...it, text: result.text, location: result.location || '' };
+            if (to.text === (it.text || '') && to.location === (it.location || '')) return;
+            store.dispatch(makeCommand(`UPDATE_${prefix}`, { id: it.id, from: it, to }));
+          },
+        },
+          it.location ? el('span', { class: 'ledger__row-loc' }, it.location) : null,
+          el('span', { class: 'ledger__row-title' }, it.text || '—'),
+        ),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-del',
+          'aria-label': 'Borrar',
+          onclick: async () => {
+            const ok = await confirmRemove(it);
+            if (!ok) return;
+            store.dispatch(makeCommand(`REMOVE_${prefix}`, { from: it, index: idx }));
+          },
+        }, icon('cross')),
+      )
+    );
+  });
+  return list;
+};
+
+// Roca Guía — one card per stone: 2×2 grid of quadrant locations surrounding
+// a circular center holding the stone's own location number. All five fields
+// are inline-editable; SET_GUIDE_STONE_FIELD dispatches on blur (onchange).
+const MAX_GUIDE_STONES = 4;
+
+const renderGuideStone = (stone, indexInList) => {
+  const field = (key, extraClass) => {
+    const value = stone[key] || '';
+    return el('input', {
+      type: 'text',
+      class: `guidestone__input${extraClass ? ` ${extraClass}` : ''}`,
+      value,
+      placeholder: '101',
+      'aria-label': key === 'center'
+        ? 'Roca Guía — localización central'
+        : `Roca Guía — cuadrante ${key.slice(1)}`,
+      autocomplete: 'off',
+      autocapitalize: 'none',
+      spellcheck: 'false',
+      inputmode: 'numeric',
+      dataset: { guideStoneField: `${stone.id}:${key}` },
+      onchange: (e) => {
+        const to = e.target.value;
+        if (value === to) return;
+        store.dispatch(makeCommand('SET_GUIDE_STONE_FIELD', {
+          id: stone.id, field: key, from: value, to,
+        }));
+      },
+    });
+  };
+
+  return el('article', { class: 'guidestone' },
+    el('button', {
+      type: 'button',
+      class: 'guidestone__remove',
+      'aria-label': 'Borrar esta Roca Guía',
+      onclick: async () => {
+        const ok = await askConfirm({
+          title: '¿Borrar esta Roca Guía?',
+          body: 'Las localizaciones registradas se perderán.',
+          confirmLabel: 'Borrar',
+        });
+        if (!ok) return;
+        store.dispatch(makeCommand('REMOVE_GUIDE_STONE', { from: stone, index: indexInList }));
+      },
+    }, icon('cross')),
+    el('div', { class: 'guidestone__grid' },
+      el('div', { class: 'guidestone__quad guidestone__quad--tl' }, field('q1')),
+      el('div', { class: 'guidestone__quad guidestone__quad--tr' }, field('q2')),
+      el('div', { class: 'guidestone__quad guidestone__quad--bl' }, field('q3')),
+      el('div', { class: 'guidestone__quad guidestone__quad--br' }, field('q4')),
+      el('div', { class: 'guidestone__center' },
+        field('center', 'guidestone__input--center'),
+      ),
+    ),
+  );
+};
+
+const renderGuideStonesSection = (stones) => {
+  const canAdd = stones.length < MAX_GUIDE_STONES;
+  let body = null;
+  if (stones.length > 0) {
+    body = el('div', { class: 'guidestones' });
+    stones.forEach((s, i) => body.append(renderGuideStone(s, i)));
+  }
+  return renderLedgerSection({
+    title: 'Roca Guía',
+    addLabel: canAdd ? 'inscribir' : null,
+    onAdd: canAdd ? () => {
+      const stone = { id: newId(), center: '', q1: '', q2: '', q3: '', q4: '' };
+      store.dispatch(makeCommand('ADD_GUIDE_STONE', { to: stone, index: stones.length }));
+    } : null,
+    body,
+  });
+};
 
 const renderExploration = (doc) => {
   const scene = el('section', { class: 'scene' });
 
   scene.append(
     el('h2', { class: 'scene__title' }, 'Andanzas'),
-    el('p',  { class: 'scene__sub'   }, 'crónica de días y piedras erguidas'),
+    el('p',  { class: 'scene__sub'   }, 'lo recorrido y lo escrito'),
     flourish(),
   );
 
+  // Transcurso del tiempo — visual top of the page, ledger-headed but no add.
   scene.append(
-    el('div', { class: 'daycard' },
-      el('button', {
-        class: 'stepper',
-        type: 'button',
-        'aria-label': 'Restar día',
-        onclick: () => {
-          const from = doc.day;
-          if (from <= 1) return;
-          store.dispatch(makeCommand('SET_DAY', { from, to: from - 1 }));
-        },
-      }, '−'),
-      el('div', { class: 'daycard__center' },
-        el('div', { class: 'daycard__label' }, 'día'),
-        el('div', { class: 'daycard__value' }, String(doc.day)),
-      ),
-      el('button', {
-        class: 'stepper',
-        type: 'button',
-        'aria-label': 'Sumar día',
-        onclick: () => {
-          const from = doc.day;
-          store.dispatch(makeCommand('SET_DAY', { from, to: from + 1 }));
-        },
-      }, '+'),
-    )
-  );
-
-  const track = el('div', { class: 'timetrack', role: 'group', 'aria-label': 'Momento del día' });
-  for (const seg of TIME_SEGMENTS) {
-    const pressed = doc.timeOfDay === seg.key;
-    track.append(el('button', {
-      type: 'button',
-      class: 'timetrack__seg',
-      'aria-pressed': pressed ? 'true' : 'false',
-      onclick: () => {
-        const from = doc.timeOfDay;
-        if (from === seg.key) return;
-        store.dispatch(makeCommand('SET_TIME_OF_DAY', { from, to: seg.key }));
-      },
-    },
-      el('span', { class: 'timetrack__glyph' }, icon(seg.iconName)),
-      seg.label,
-    ));
-  }
-  scene.append(track);
-
-  scene.append(
-    el('h3', { class: 'scene__title' }, 'Transcurso del tiempo'),
-    el('p',  { class: 'scene__sub'   }, 'marca el paso del capítulo'),
+    renderLedgerHead({ title: 'Transcurso del tiempo' }),
     renderTimeTrackers(doc),
-    el('hr', { class: 'divider' }),
-    el('h3', { class: 'scene__title' }, 'Menhires'),
-    el('p',  { class: 'scene__sub'   }, 'marca las piedras; aviva los fuegos'),
   );
 
-  if (doc.menhirs.length === 0) {
-    scene.append(el('p', { class: 'hush' }, 'Ninguna piedra inscrita. Anota la primera.'));
-  } else {
-    const list = el('ul', { class: 'menhirs' });
-    doc.menhirs.forEach((m, idx) => {
-      list.append(
-        el('li', { class: 'menhir', dataset: { state: m.state } },
-          el('button', {
-            type: 'button',
-            class: 'menhir__mark',
-            'aria-label': `Cambiar estado de ${m.name} (${MENHIR_LABELS[m.state]})`,
-            onclick: () => {
-              store.dispatch(makeCommand('SET_MENHIR_STATE', {
-                id: m.id, from: m.state, to: cycleMenhirState(m.state),
-              }));
-            },
-          }, icon(MENHIR_ICONS[m.state])),
-          el('div', { class: 'menhir__body' },
-            el('div', { class: 'menhir__name' }, m.name),
-            el('div', { class: 'menhir__state' }, MENHIR_LABELS[m.state]),
-          ),
-          el('button', {
-            type: 'button',
-            class: 'menhir__del',
-            'aria-label': `Borrar ${m.name}`,
-            onclick: async () => {
-              const ok = await askConfirm({
-                title: '¿Tachar del tomo?',
-                body: `«${m.name}» se perderá en las brumas.`,
-              });
-              if (!ok) return;
-              store.dispatch(makeCommand('REMOVE_MENHIR', { from: m, index: idx }));
-            },
-          }, icon('cross')),
-        )
-      );
+  const quests         = doc.quests         || [];
+  const sideQuests     = doc.sideQuests     || [];
+  const notes          = doc.notes          || [];
+  const timeTokens     = doc.timeTokens     || [];
+  const partners       = doc.partners       || [];
+  const guardians      = doc.guardians      || [];
+  const perditionKings = doc.perditionKings || [];
+  const guideStones    = doc.guideStones    || [];
+
+  const askLocation = (title) => askPrompt({
+    title,
+    label: 'N.º de localización (opcional)',
+    placeholder: '101',
+    inputmode: 'numeric',
+  });
+
+  // --- Shared state ---------------------------------------------------
+  // Each of these is a checklist of `{text, location}` items: prompts ask
+  // for a description first, then an optional location number. The remove
+  // confirm uses the description as the subject when present.
+  const sharedSection = ({ title, addLabel, prefix, items, promptTitle, promptLabel, promptPlaceholder, removeTitle, editTitle }) =>
+    renderLedgerSection({
+      title,
+      addLabel,
+      onAdd: async () => {
+        const text = await askPrompt({
+          title: promptTitle,
+          label: promptLabel,
+          placeholder: promptPlaceholder,
+        });
+        if (!text) return;
+        const location = await askLocation('Marca la localización');
+        const it = { id: newId(), text, location: location || '' };
+        store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: items.length }));
+      },
+      body: renderTextLocRows(items, prefix, (it) => askConfirm({
+        title: removeTitle,
+        body: it.text ? `«${it.text}» se perderá.` : 'La entrada se perderá.',
+      }), editTitle || `Editar`),
     });
-    scene.append(list);
-  }
 
-  scene.append(
-    el('div', { class: 'actions' },
-      el('button', {
-        type: 'button',
-        class: 'btn btn--ink',
-        onclick: async () => {
-          const name = await askPrompt({
-            title: 'Nuevo menhir',
-            label: 'Nombre de la piedra',
-            placeholder: 'Cnoc na Sídhe',
-          });
-          if (!name) return;
-          const m = { id: newId(), name, state: 'dormant' };
-          store.dispatch(makeCommand('ADD_MENHIR', { to: m, index: doc.menhirs.length }));
-        },
-      }, icon('plus'), ' Inscribir piedra'),
-    ),
-  );
+  scene.append(renderLedgerSection({
+    title: 'Misión principal',
+    addLabel: 'iniciar',
+    onAdd: async () => {
+      const title = await askPrompt({
+        title: 'Nueva misión',
+        label: '¿Qué se emprende?',
+        placeholder: 'Encontrar al Ermitaño del Tarn',
+      });
+      if (!title) return;
+      const location = await askLocation('Marca la localización');
+      const q = { id: newId(), title, location: location || '', done: false };
+      store.dispatch(makeCommand('ADD_QUEST', { to: q, index: quests.length }));
+    },
+    body: renderQuestRows(quests),
+  }));
+
+  scene.append(renderLedgerSection({
+    title: 'Misiones secundarias',
+    addLabel: 'añadir',
+    onAdd: async () => {
+      const title = await askPrompt({
+        title: 'Nueva misión secundaria',
+        label: '¿Qué encargo se acepta?',
+        placeholder: 'Recuperar la espada perdida',
+      });
+      if (!title) return;
+      const location = await askLocation('Marca la localización');
+      const it = { id: newId(), title, location: location || '', done: false };
+      store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: sideQuests.length }));
+    },
+    body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
+      title: '¿Tachar la misión?',
+      body: `«${it.title}» será arrancada del diario.`,
+    }), 'Editar misión secundaria'),
+  }));
+
+  scene.append(renderLedgerSection({
+    title: 'Notas',
+    addLabel: 'anotar',
+    onAdd: async () => {
+      const text = await askPrompt({
+        title: 'Nueva nota',
+        label: '¿Qué se quiere recordar?',
+        placeholder: 'La hoguera ardió tres noches…',
+      });
+      if (!text) return;
+      const n = { id: newId(), text };
+      store.dispatch(makeCommand('ADD_NOTE', { to: n, index: notes.length }));
+    },
+    body: renderNoteRows(notes),
+  }));
+
+  scene.append(sharedSection({
+    title: 'Partners',
+    addLabel: 'añadir',
+    prefix: 'PARTNER',
+    items: partners,
+    promptTitle: 'Nuevo partner',
+    promptLabel: 'Nombre o descripción',
+    promptPlaceholder: 'Aedric el Bardo',
+    removeTitle: '¿Olvidar a este partner?',
+    editTitle: 'Editar partner',
+  }));
+
+  scene.append(sharedSection({
+    title: 'Fichas de Tiempo',
+    addLabel: 'añadir',
+    prefix: 'TIME_TOKEN',
+    items: timeTokens,
+    promptTitle: 'Nueva ficha de tiempo',
+    promptLabel: 'Descripción',
+    promptPlaceholder: 'Cae la noche sobre el valle',
+    removeTitle: '¿Tachar la ficha?',
+    editTitle: 'Editar ficha de tiempo',
+  }));
+
+  scene.append(sharedSection({
+    title: 'Rey de la Perdición',
+    addLabel: 'añadir',
+    prefix: 'PERDITION_KING',
+    items: perditionKings,
+    promptTitle: 'Rey de la Perdición',
+    promptLabel: 'Nombre o descripción',
+    promptPlaceholder: 'El Coronado de Espinos',
+    removeTitle: '¿Tachar al Rey?',
+    editTitle: 'Editar Rey de la Perdición',
+  }));
+
+  scene.append(sharedSection({
+    title: 'Guardianes',
+    addLabel: 'añadir',
+    prefix: 'GUARDIAN',
+    items: guardians,
+    promptTitle: 'Nuevo guardián',
+    promptLabel: 'Nombre o descripción',
+    promptPlaceholder: 'Los Centinelas de Bran',
+    removeTitle: '¿Olvidar al guardián?',
+    editTitle: 'Editar guardián',
+  }));
+
+  scene.append(renderGuideStonesSection(guideStones));
 
   return scene;
-};
-
-/* -------------------------------------------------------------------------
-   Diario — misiones + secretos
-   ------------------------------------------------------------------------- */
-
-const renderChecklist = ({
-  items, prefix, emptyText, addLabel,
-  promptTitle, promptLabel, promptPlaceholder,
-  removeTitle, removeBody,
-}) => {
-  const node = document.createDocumentFragment();
-  if (items.length === 0) {
-    node.append(el('p', { class: 'hush' }, emptyText));
-  } else {
-    const list = el('ul', { class: 'quests' });
-    items.forEach((it, idx) => {
-      list.append(
-        el('li', { class: 'quest', dataset: { done: it.done ? 'true' : 'false' } },
-          el('button', {
-            type: 'button',
-            class: 'quest__check',
-            'aria-label': it.done ? 'Marcar como abierta' : 'Marcar como cumplida',
-            onclick: () => store.dispatch(makeCommand(`TOGGLE_${prefix}`, {
-              id: it.id, from: !!it.done, to: !it.done,
-            })),
-          }, it.done ? icon('check') : null),
-          el('div', { class: 'quest__body' },
-            it.code ? el('div', { class: 'quest__code' }, it.code) : null,
-            el('div', { class: 'quest__title' }, it.title),
-          ),
-          el('button', {
-            type: 'button',
-            class: 'quest__del',
-            'aria-label': `Borrar ${it.title}`,
-            onclick: async () => {
-              const ok = await askConfirm({
-                title: removeTitle,
-                body: removeBody(it),
-              });
-              if (!ok) return;
-              store.dispatch(makeCommand(`REMOVE_${prefix}`, { from: it, index: idx }));
-            },
-          }, icon('cross')),
-        )
-      );
-    });
-    node.append(list);
-  }
-  node.append(
-    el('div', { class: 'actions' },
-      el('button', {
-        type: 'button',
-        class: 'btn btn--ink',
-        onclick: async () => {
-          const title = await askPrompt({
-            title: promptTitle,
-            label: promptLabel,
-            placeholder: promptPlaceholder,
-          });
-          if (!title) return;
-          const it = { id: newId(), title, done: false };
-          store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: items.length }));
-        },
-      }, icon('plus'), ' ' + addLabel),
-    ),
-  );
-  return node;
 };
 
 /* -------------------------------------------------------------------------
@@ -566,350 +910,6 @@ const renderTimeTrackers = (doc) => {
   return el('div', { class: 'time-trackers__section' }, mobile, grid);
 };
 
-const renderJournal = (doc) => {
-  const scene = el('section', { class: 'scene' });
-
-  scene.append(
-    el('h2', { class: 'scene__title' }, 'Diario'),
-    el('p',  { class: 'scene__sub'   }, 'misiones emprendidas, secretos revelados'),
-    flourish(),
-    el('h3', { class: 'scene__title' }, 'Misión principal'),
-  );
-
-  if (doc.quests.length === 0) {
-    scene.append(el('p', { class: 'hush' }, 'La página está en blanco. Comienza una misión.'));
-  } else {
-    const list = el('ul', { class: 'quests' });
-    doc.quests.forEach((q, idx) => {
-      list.append(
-        el('li', { class: 'quest', dataset: { done: q.done ? 'true' : 'false' } },
-          el('button', {
-            type: 'button',
-            class: 'quest__check',
-            'aria-label': q.done ? 'Marcar como abierta' : 'Marcar como cumplida',
-            onclick: () => store.dispatch(makeCommand('TOGGLE_QUEST', {
-              id: q.id, from: !!q.done, to: !q.done,
-            })),
-          }, q.done ? icon('check') : null),
-          el('div', { class: 'quest__body' },
-            q.code ? el('div', { class: 'quest__code' }, q.code) : null,
-            el('div', { class: 'quest__title' }, q.title),
-          ),
-          el('button', {
-            type: 'button',
-            class: 'quest__del',
-            'aria-label': `Borrar ${q.title}`,
-            onclick: async () => {
-              const ok = await askConfirm({
-                title: '¿Tachar la misión?',
-                body: `«${q.title}» será arrancada del diario.`,
-              });
-              if (!ok) return;
-              store.dispatch(makeCommand('REMOVE_QUEST', { from: q, index: idx }));
-            },
-          }, icon('cross')),
-        )
-      );
-    });
-    scene.append(list);
-  }
-
-  scene.append(
-    el('div', { class: 'actions' },
-      el('button', {
-        type: 'button',
-        class: 'btn btn--ink',
-        onclick: async () => {
-          const title = await askPrompt({
-            title: 'Nueva misión',
-            label: '¿Qué se emprende?',
-            placeholder: 'Encontrar al Ermitaño del Tarn',
-          });
-          if (!title) return;
-          const code = await askPrompt({
-            title: 'Marca el capítulo',
-            label: 'Capítulo o código (opcional)',
-            placeholder: 'M3.1',
-          });
-          const q = { id: newId(), title, code: code || '', done: false };
-          store.dispatch(makeCommand('ADD_QUEST', { to: q, index: doc.quests.length }));
-        },
-      }, icon('plus'), ' Iniciar misión'),
-    ),
-  );
-
-  scene.append(el('hr', { class: 'divider' }));
-
-  scene.append(
-    el('h3', { class: 'scene__title' }, 'Misiones secundarias'),
-    el('p',  { class: 'scene__sub'   }, 'caminos paralelos al sendero mayor'),
-  );
-  scene.append(renderChecklist({
-    items: doc.sideQuests || [],
-    prefix: 'SIDE_QUEST',
-    emptyText: 'Sin desvíos por ahora.',
-    addLabel: 'Añadir misión secundaria',
-    promptTitle: 'Nueva misión secundaria',
-    promptLabel: '¿Qué encargo se acepta?',
-    promptPlaceholder: 'Recuperar la espada perdida',
-    removeTitle: '¿Tachar la misión?',
-    removeBody: (it) => `«${it.title}» será arrancada del diario.`,
-  }));
-
-  scene.append(el('hr', { class: 'divider' }));
-
-  scene.append(
-    el('h3', { class: 'scene__title' }, 'Personajes importantes'),
-    el('p',  { class: 'scene__sub'   }, 'rostros que pesarán en el camino'),
-  );
-  scene.append(renderChecklist({
-    items: doc.characters || [],
-    prefix: 'CHARACTER',
-    emptyText: 'Aún no se ha cruzado nadie de nombre.',
-    addLabel: 'Inscribir personaje',
-    promptTitle: 'Nuevo personaje',
-    promptLabel: 'Nombre o título',
-    promptPlaceholder: 'Lady Morgaine',
-    removeTitle: '¿Olvidar a este personaje?',
-    removeBody: (it) => `«${it.title}» dejará el tomo.`,
-  }));
-
-  scene.append(el('hr', { class: 'divider' }));
-
-  scene.append(
-    el('h3', { class: 'scene__title' }, 'Localizaciones'),
-    el('p',  { class: 'scene__sub'   }, 'lugares que el pie ha pisado o desea pisar'),
-  );
-  scene.append(renderChecklist({
-    items: doc.locations || [],
-    prefix: 'LOCATION',
-    emptyText: 'Sin lugares anotados.',
-    addLabel: 'Anotar lugar',
-    promptTitle: 'Nuevo lugar',
-    promptLabel: 'Nombre del lugar',
-    promptPlaceholder: 'Tarn del Ermitaño',
-    removeTitle: '¿Borrar el lugar?',
-    removeBody: (it) => `«${it.title}» dejará el mapa.`,
-  }));
-
-  scene.append(el('hr', { class: 'divider' }));
-
-  scene.append(
-    el('h3', { class: 'scene__title' }, 'Notas extendidas'),
-    el('p',  { class: 'scene__sub'   }, 'apuntes al margen del tomo'),
-  );
-  const notes = doc.notes || [];
-  if (notes.length === 0) {
-    scene.append(el('p', { class: 'hush' }, 'Aún sin apuntes.'));
-  } else {
-    const list = el('ul', { class: 'notes' });
-    notes.forEach((n, idx) => {
-      list.append(
-        el('li', { class: 'note' },
-          el('div', { class: 'note__text' }, n.text),
-          el('button', {
-            type: 'button',
-            class: 'quest__del',
-            'aria-label': 'Borrar nota',
-            onclick: async () => {
-              const ok = await askConfirm({
-                title: '¿Tachar la nota?',
-                body: 'La nota se perderá.',
-              });
-              if (!ok) return;
-              store.dispatch(makeCommand('REMOVE_NOTE', { from: n, index: idx }));
-            },
-          }, icon('cross')),
-        )
-      );
-    });
-    scene.append(list);
-  }
-  scene.append(
-    el('div', { class: 'actions' },
-      el('button', {
-        type: 'button',
-        class: 'btn btn--ink',
-        onclick: async () => {
-          const text = await askPrompt({
-            title: 'Nueva nota',
-            label: '¿Qué se quiere recordar?',
-            placeholder: 'La hoguera ardió tres noches…',
-          });
-          if (!text) return;
-          const n = { id: newId(), text };
-          store.dispatch(makeCommand('ADD_NOTE', { to: n, index: notes.length }));
-        },
-      }, icon('plus'), ' Anotar'),
-    ),
-  );
-
-  scene.append(el('hr', { class: 'divider' }));
-
-  scene.append(
-    el('h3', { class: 'scene__title' }, 'Secretos'),
-    el('p',  { class: 'scene__sub'   }, 'pasajes numerados del libro profundo'),
-  );
-
-  if (doc.secrets.length === 0) {
-    scene.append(el('p', { class: 'hush' }, 'Nada se ha revelado aún.'));
-  } else {
-    const sorted = [...doc.secrets].sort((a, b) => a - b);
-    const ring = el('div', { class: 'secrets' });
-    for (const n of sorted) {
-      ring.append(el('button', {
-        type: 'button',
-        class: 'secret',
-        'aria-label': `Borrar secreto ${n}`,
-        onclick: async () => {
-          const ok = await askConfirm({
-            title: '¿Olvidar este secreto?',
-            body: `El secreto N.º ${n} será borrado.`,
-          });
-          if (!ok) return;
-          store.dispatch(makeCommand('REMOVE_SECRET', { from: n }));
-        },
-      }, String(n)));
-    }
-    scene.append(ring);
-  }
-
-  scene.append(
-    el('div', { class: 'actions' },
-      el('button', {
-        type: 'button',
-        class: 'btn btn--ink',
-        onclick: async () => {
-          const raw = await askPrompt({
-            title: 'Secreto revelado',
-            label: 'Número del secreto',
-            placeholder: '37',
-          });
-          if (!raw) return;
-          const n = parseInt(raw, 10);
-          if (!Number.isFinite(n)) return;
-          if (doc.secrets.includes(n)) return;
-          store.dispatch(makeCommand('ADD_SECRET', { to: n }));
-        },
-      }, icon('plus'), ' Revelar secreto'),
-    ),
-  );
-
-  return scene;
-};
-
-/* -------------------------------------------------------------------------
-   Diplomacia
-   ------------------------------------------------------------------------- */
-
-const FACTION_MIN = -10;
-const FACTION_MAX =  10;
-
-const renderPips = (value) => {
-  const pips = el('div', { class: 'faction__pips', 'aria-hidden': 'true' });
-  const total = 9;
-  const half = (total - 1) / 2;
-  const clamped = Math.max(-half, Math.min(half, value));
-  for (let i = -half; i <= half; i++) {
-    const isPivot = i === 0;
-    const filled =
-      (clamped > 0 && i > 0 && i <= clamped) ||
-      (clamped < 0 && i < 0 && i >= clamped) ||
-      (clamped === 0 && isPivot);
-    pips.append(el('span', {
-      class: 'faction__pip',
-      dataset: { filled: filled ? 'true' : 'false', pivot: isPivot ? 'true' : 'false' },
-    }));
-  }
-  const wrap = el('div', { class: 'faction__pipwrap' });
-  wrap.append(
-    pips,
-    el('div', { class: 'faction__value' }, (value > 0 ? '+' : '') + value),
-  );
-  return wrap;
-};
-
-const renderDiplomacy = (doc) => {
-  const scene = el('section', { class: 'scene' });
-
-  scene.append(
-    el('h2', { class: 'scene__title' }, 'Diplomacia'),
-    el('p',  { class: 'scene__sub'   }, 'cómo te pesan los reinos'),
-    flourish(),
-  );
-
-  if (doc.factions.length === 0) {
-    scene.append(el('p', { class: 'hush' }, 'Sin estandartes alzados. Nombra los reinos.'));
-  } else {
-    const list = el('ul', { class: 'factions' });
-    doc.factions.forEach((f, idx) => {
-      list.append(
-        el('li', { class: 'faction' },
-          el('div', { class: 'faction__name' }, f.name),
-          el('button', {
-            type: 'button',
-            class: 'faction__del',
-            'aria-label': `Borrar ${f.name}`,
-            onclick: async () => {
-              const ok = await askConfirm({
-                title: '¿Disolver el estandarte?',
-                body: `«${f.name}» será olvidado.`,
-              });
-              if (!ok) return;
-              store.dispatch(makeCommand('REMOVE_FACTION', { from: f, index: idx }));
-            },
-          }, icon('cross')),
-          el('div', { class: 'faction__track' },
-            el('button', {
-              type: 'button',
-              class: 'stepper',
-              'aria-label': `Restar a ${f.name}`,
-              onclick: () => {
-                const from = f.value ?? 0;
-                if (from <= FACTION_MIN) return;
-                store.dispatch(makeCommand('SET_FACTION_VALUE', { id: f.id, from, to: from - 1 }));
-              },
-            }, '−'),
-            renderPips(f.value ?? 0),
-            el('button', {
-              type: 'button',
-              class: 'stepper',
-              'aria-label': `Sumar a ${f.name}`,
-              onclick: () => {
-                const from = f.value ?? 0;
-                if (from >= FACTION_MAX) return;
-                store.dispatch(makeCommand('SET_FACTION_VALUE', { id: f.id, from, to: from + 1 }));
-              },
-            }, '+'),
-          ),
-        )
-      );
-    });
-    scene.append(list);
-  }
-
-  scene.append(
-    el('div', { class: 'actions' },
-      el('button', {
-        type: 'button',
-        class: 'btn btn--ink',
-        onclick: async () => {
-          const name = await askPrompt({
-            title: 'Nuevo estandarte',
-            label: 'Nombre del reino o clan',
-            placeholder: 'Los Renegados',
-          });
-          if (!name) return;
-          const f = { id: newId(), name, value: 0 };
-          store.dispatch(makeCommand('ADD_FACTION', { to: f, index: doc.factions.length }));
-        },
-      }, icon('plus'), ' Alzar estandarte'),
-    ),
-  );
-
-  return scene;
-};
-
 /* -------------------------------------------------------------------------
    Estados — la Hoja de Estados oficial
    ------------------------------------------------------------------------- */
@@ -1025,41 +1025,37 @@ const renderStatusRow = (status, filled) => {
    Drawer — bottom-sheet de "Más opciones" + crónica de acciones
    ------------------------------------------------------------------------- */
 
-const drawer          = $('drawer');
-const drawerBackdrop  = $('drawer-backdrop');
-const drawerKnob      = $('drawer-knob');
-const drawerBody      = $('drawer-body');
-const drawerTitleText = $('drawer-title-text');
-const drawerVersion   = $('drawer-version');
-const drawerBack      = $('drawer-back');
-const drawerClose     = $('drawer-close');
+const drawerKnob = $('drawer-knob');
 
+// Drawer + backdrop are mounted on demand. When not open, neither exists in
+// the DOM — no risk of a residual element intercepting clicks or scroll. The
+// cleanup timer is the single source of truth for unmounting (transitionend
+// is unreliable: prefers-reduced-motion disables transitions so it never fires).
+let drawerEl = null;
+let drawerBackdropEl = null;
 let drawerOpen = false;
-let drawerMode = 'menu'; // 'menu' | 'log' | 'session'
+let drawerMode = 'menu'; // 'menu' | 'log'
+let pendingCloseTimer = null;
 
 const DRAWER_TITLES = {
   menu: 'Más opciones',
   log: 'Crónica de acciones',
-  session: 'Hoja de juego',
 };
 
-const setDrawerMode = (mode) => {
-  drawerMode = mode;
-  drawerTitleText.textContent = DRAWER_TITLES[mode] || DRAWER_TITLES.menu;
-  drawerBack.hidden = (mode === 'menu');
-  renderDrawerBody();
-};
+// Slightly longer than the 260ms transform/220ms opacity transitions so the
+// fade-out finishes visually before the node leaves the DOM.
+const DRAWER_CLOSE_MS = 320;
 
 // The deployed shell's version lives in sw.js as the source of truth. We
 // query the active SW (and listen for its broadcast on activate) and reflect
-// whatever it tells us. The drawer title stays blank until the SW responds —
-// which is the correct signal that the SW is missing or stale.
+// whatever it tells us. Cached so a fresh drawer mount displays it even if
+// the SW reported the version while the drawer was closed.
 let swVersion = '';
 
 const setSwVersion = (value) => {
   if (!value) return;
-
-  drawerVersion.textContent = value;
+  swVersion = value;
+  if (drawerEl) drawerEl._version.textContent = value;
 };
 
 const askSwVersion = () => {
@@ -1077,18 +1073,91 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', askSwVersion);
 }
 
+const buildBackdrop = () => el('div', {
+  class: 'drawer-backdrop',
+  onclick: closeDrawer,
+});
+
+const buildDrawer = () => {
+  const titleText = el('span', { id: 'drawer-title-text' },
+    DRAWER_TITLES[drawerMode] || DRAWER_TITLES.menu);
+  const version = el('span', {
+    id: 'drawer-version',
+    class: 'drawer__version',
+    'aria-hidden': 'true',
+  });
+  if (swVersion) version.textContent = swVersion;
+
+  const back = el('button', {
+    id: 'drawer-back',
+    type: 'button',
+    class: 'drawer__back',
+    hidden: drawerMode === 'menu',
+    'aria-label': 'Volver',
+    onclick: () => setDrawerMode('menu'),
+  }, icon('chevronLeft'));
+
+  const close = el('button', {
+    id: 'drawer-close',
+    type: 'button',
+    class: 'drawer__close',
+    'aria-label': 'Cerrar',
+    onclick: closeDrawer,
+  }, icon('cross'));
+
+  const body = el('div', { id: 'drawer-body', class: 'drawer__body' });
+
+  const drawer = el('aside', {
+    id: 'drawer',
+    class: 'drawer',
+    role: 'dialog',
+    'aria-modal': 'false',
+    'aria-labelledby': 'drawer-title',
+  },
+    el('div', { class: 'drawer__rail', 'aria-hidden': 'true' },
+      el('span', { class: 'drawer__rail-handle' }),
+    ),
+    el('div', { class: 'drawer__head' },
+      back,
+      el('h2', { id: 'drawer-title', class: 'drawer__title' }, titleText, version),
+      close,
+    ),
+    body,
+  );
+
+  // Cache descendant refs so setDrawerMode / setSwVersion / renderDrawerBody
+  // don't have to re-query each time.
+  drawer._titleText = titleText;
+  drawer._version = version;
+  drawer._back = back;
+  drawer._body = body;
+  return drawer;
+};
+
 const openDrawer = () => {
   if (drawerOpen) return;
+  // If a previous close is still fading out, finish it instantly so we don't
+  // briefly have two stacks of drawer/backdrop in the DOM at once.
+  if (pendingCloseTimer) {
+    clearTimeout(pendingCloseTimer);
+    pendingCloseTimer = null;
+    document.querySelectorAll('.drawer, .drawer-backdrop').forEach((n) => n.remove());
+  }
   drawerOpen = true;
+  drawerMode = 'menu';
   drawerKnob.setAttribute('aria-expanded', 'true');
-  setDrawerMode('menu');
-  drawer.hidden = false;
-  drawerBackdrop.hidden = false;
-  // Two RAFs so the browser commits the initial hidden→visible state before
-  // we flip the transition flag.
+
+  drawerBackdropEl = buildBackdrop();
+  drawerEl = buildDrawer();
+  document.body.append(drawerBackdropEl, drawerEl);
+  renderDrawerBody();
+
+  // Two RAFs so the browser commits the initial (data-open absent → closed)
+  // state before we flip the transition flag.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    drawer.dataset.open = 'true';
-    drawerBackdrop.dataset.open = 'true';
+    if (!drawerEl) return;
+    drawerEl.dataset.open = 'true';
+    drawerBackdropEl.dataset.open = 'true';
   }));
 };
 
@@ -1097,26 +1166,41 @@ const closeDrawer = () => {
   // Flush any pending text-input edit so its `change` event commits to the
   // store before we tear the form down.
   const a = document.activeElement;
-  if (a && drawerBody.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) {
+  if (a && drawerEl?.contains(a) && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) {
     a.blur();
   }
   drawerOpen = false;
   drawerKnob.setAttribute('aria-expanded', 'false');
-  drawer.dataset.open = 'false';
-  drawerBackdrop.dataset.open = 'false';
-  const finish = (e) => {
-    if (e.target !== drawer) return;
-    drawer.hidden = true;
-    drawerBackdrop.hidden = true;
-    drawer.removeEventListener('transitionend', finish);
-  };
-  drawer.addEventListener('transitionend', finish);
+
+  // Snapshot the current pair and detach them from module state immediately,
+  // so any concurrent openDrawer() builds a fresh pair instead of mutating
+  // these. The originals continue to fade out via CSS until the timer fires.
+  const dEl = drawerEl;
+  const bdEl = drawerBackdropEl;
+  drawerEl = null;
+  drawerBackdropEl = null;
+  dEl.dataset.open = 'false';
+  bdEl.dataset.open = 'false';
+
+  pendingCloseTimer = setTimeout(() => {
+    dEl.remove();
+    bdEl.remove();
+    pendingCloseTimer = null;
+  }, DRAWER_CLOSE_MS);
+};
+
+const setDrawerMode = (mode) => {
+  drawerMode = mode;
+  if (!drawerEl) return;
+  drawerEl._titleText.textContent = DRAWER_TITLES[mode] || DRAWER_TITLES.menu;
+  drawerEl._back.hidden = (mode === 'menu');
+  renderDrawerBody();
 };
 
 const toggleDrawer = () => (drawerOpen ? closeDrawer() : openDrawer());
 
 const TAB_LABELS = {
-  exploration: 'Andanzas', journal: 'Diario', diplomacy: 'Diplomacia', statuses: 'Estados',
+  exploration: 'Andanzas', statuses: 'Estados', heroes: 'Héroes',
 };
 
 const statusName = (id) => {
@@ -1128,20 +1212,8 @@ const formatLogEntry = (cmd, doc) => {
   const p = cmd.payload || {};
   const findIn = (key, id) => (doc[key] || []).find((x) => x.id === id);
   switch (cmd.type) {
-    case 'SET_DAY':
-      return `Día ${p.from} → ${p.to}`;
-    case 'SET_TIME_OF_DAY':
-      return `Momento del día: ${TIME_SEGMENTS.find((s) => s.key === p.to)?.label || p.to}`;
     case 'SET_ACTIVE_TAB':
       return `Abrir ${TAB_LABELS[p.to] || p.to}`;
-    case 'ADD_MENHIR':
-      return `Inscribir menhir «${p.to?.name ?? '?'}»`;
-    case 'REMOVE_MENHIR':
-      return `Tachar menhir «${p.from?.name ?? '?'}»`;
-    case 'SET_MENHIR_STATE': {
-      const m = findIn('menhirs', p.id);
-      return `Menhir${m ? ` «${m.name}»` : ''}: ${MENHIR_LABELS[p.to] || p.to}`;
-    }
     case 'ADD_QUEST':
       return `Iniciar misión «${p.to?.title ?? '?'}»`;
     case 'REMOVE_QUEST':
@@ -1150,19 +1222,8 @@ const formatLogEntry = (cmd, doc) => {
       const q = findIn('quests', p.id);
       return `Misión${q ? ` «${q.title}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
     }
-    case 'ADD_SECRET':
-      return `Secreto revelado: N.º ${p.to}`;
-    case 'REMOVE_SECRET':
-      return `Secreto olvidado: N.º ${p.from}`;
-    case 'ADD_FACTION':
-      return `Alzar estandarte «${p.to?.name ?? '?'}»`;
-    case 'REMOVE_FACTION':
-      return `Disolver estandarte «${p.from?.name ?? '?'}»`;
-    case 'SET_FACTION_VALUE': {
-      const f = findIn('factions', p.id);
-      const fmt = (n) => (n > 0 ? `+${n}` : `${n}`);
-      return `Estandarte${f ? ` «${f.name}»` : ''}: ${fmt(p.from)} → ${fmt(p.to)}`;
-    }
+    case 'UPDATE_QUEST':
+      return `Misión editada: «${(p.to?.title || '').slice(0, 40)}»`;
     case 'TOGGLE_STATUS_PIP':
       return `Estado «${statusName(p.id)}»: casilla ${p.pip} ${p.to ? 'marcada' : 'borrada'}`;
     case 'SET_CHAPTER_TIME':
@@ -1173,39 +1234,56 @@ const formatLogEntry = (cmd, doc) => {
       const it = findIn('sideQuests', p.id);
       return `Misión secundaria${it ? ` «${it.title}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
     }
-    case 'ADD_CHARACTER':     return `Inscribir personaje «${p.to?.title ?? '?'}»`;
-    case 'REMOVE_CHARACTER':  return `Olvidar personaje «${p.from?.title ?? '?'}»`;
-    case 'TOGGLE_CHARACTER': {
-      const it = findIn('characters', p.id);
-      return `Personaje${it ? ` «${it.title}»` : ''}: ${p.to ? 'cumplido' : 'reabierto'}`;
-    }
-    case 'ADD_LOCATION':      return `Anotar lugar «${p.to?.title ?? '?'}»`;
-    case 'REMOVE_LOCATION':   return `Borrar lugar «${p.from?.title ?? '?'}»`;
-    case 'TOGGLE_LOCATION': {
-      const it = findIn('locations', p.id);
-      return `Lugar${it ? ` «${it.title}»` : ''}: ${p.to ? 'visitado' : 'pendiente'}`;
+    case 'UPDATE_SIDE_QUEST':
+      return `Misión secundaria editada: «${(p.to?.title || '').slice(0, 40)}»`;
+    case 'ADD_HERO':
+      return `Héroe en juego: ${CHARACTER_NAMES[p.to] ?? '?'}`;
+    case 'REMOVE_HERO':
+      return `Héroe retirado: ${CHARACTER_NAMES[p.from] ?? '?'}`;
+    case 'ADD_HERO_ITEM':
+      return `${CHARACTER_NAMES[p.heroIdx] ?? '?'} — anotar «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'REMOVE_HERO_ITEM':
+      return `${CHARACTER_NAMES[p.heroIdx] ?? '?'} — borrar «${(p.from?.text || '').slice(0, 40)}»`;
+    case 'UPDATE_HERO_ITEM':
+      return `${CHARACTER_NAMES[p.heroIdx] ?? '?'} — editar «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_TIME_TOKEN':       return `Ficha de tiempo añadida: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'REMOVE_TIME_TOKEN':    return `Ficha de tiempo borrada: «${(p.from?.text || '').slice(0, 40)}»`;
+    case 'UPDATE_TIME_TOKEN':    return `Ficha de tiempo editada: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_PARTNER':          return `Partner inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'REMOVE_PARTNER':       return `Partner borrado: «${(p.from?.text || '').slice(0, 40)}»`;
+    case 'UPDATE_PARTNER':       return `Partner editado: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_GUARDIAN':         return `Guardián inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'REMOVE_GUARDIAN':      return `Guardián borrado: «${(p.from?.text || '').slice(0, 40)}»`;
+    case 'UPDATE_GUARDIAN':      return `Guardián editado: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_PERDITION_KING':   return `Rey de la Perdición inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'REMOVE_PERDITION_KING':return `Rey de la Perdición borrado: «${(p.from?.text || '').slice(0, 40)}»`;
+    case 'UPDATE_PERDITION_KING':return `Rey de la Perdición editado: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_GUIDE_STONE':      return `Roca Guía inscrita`;
+    case 'REMOVE_GUIDE_STONE':   return `Roca Guía borrada`;
+    case 'SET_GUIDE_STONE_FIELD': {
+      const which = p.field === 'center' ? 'centro' : `cuadrante ${p.field.slice(1)}`;
+      return `Roca Guía — ${which}: ${p.from || '∅'} → ${p.to || '∅'}`;
     }
     case 'ADD_NOTE':
       return `Nota añadida: «${(p.to?.text || '').slice(0, 40)}${(p.to?.text?.length ?? 0) > 40 ? '…' : ''}»`;
     case 'REMOVE_NOTE':
       return `Nota borrada: «${(p.from?.text || '').slice(0, 40)}${(p.from?.text?.length ?? 0) > 40 ? '…' : ''}»`;
+    case 'UPDATE_NOTE':
+      return `Nota editada: «${(p.to?.text || '').slice(0, 40)}${(p.to?.text?.length ?? 0) > 40 ? '…' : ''}»`;
     case 'SET_SESSION_FIELD':
-      return `Hoja de juego — ${describeSessionPath(p.path)}`;
+      return `Héroes — ${describeSessionPath(p.path)}`;
     default:
       return cmd.type;
   }
 };
 
+// Labels for the path components that SET_SESSION_FIELD ends up dispatching
+// against — used by the activity log to render a readable line per change.
+// Only fields the UI currently writes are listed here; anything else falls
+// back to the raw key.
 const SESSION_LABELS = {
-  timeTokens: 'Fichas de Tiempo / Misión',
-  companion: 'Compañero',
-  guardians: 'Guardianes',
-  guideStone: 'Roca Guía',
-  perditionKing: 'Rey de la Perdición',
-  notes: 'Notas',
-  name: 'nombre',
   location: 'localización',
-  // Habilidades del personaje
+  // Habilidades
   agresividad: 'agresividad',
   audacia: 'audacia',
   logica: 'lógica',
@@ -1221,7 +1299,6 @@ const SESSION_LABELS = {
   wealth: 'riqueza',
   magic: 'magia',
   exp: 'experiencia',
-  items: 'objetos / secretos',
 };
 
 const describeSessionPath = (path) => {
@@ -1337,19 +1414,6 @@ const renderDrawerMenu = () => {
       el('button', {
         type: 'button',
         class: 'drawer__item',
-        onclick: () => setDrawerMode('session'),
-      },
-        el('span', { class: 'drawer__item-glyph' }, icon('banner')),
-        el('span', { class: 'drawer__item-body' },
-          el('span', { class: 'drawer__item-title' }, 'Hoja de juego'),
-          el('span', { class: 'drawer__item-sub' }, 'estado entre sesiones'),
-        ),
-      ),
-    ),
-    el('li', {},
-      el('button', {
-        type: 'button',
-        class: 'drawer__item',
         onclick: () => setDrawerMode('log'),
       },
         el('span', { class: 'drawer__item-glyph' }, icon('scroll')),
@@ -1395,7 +1459,7 @@ const renderDrawerMenu = () => {
         onclick: async () => {
           const ok = await askConfirm({
             title: '¿Comenzar de nuevo?',
-            body: 'Todo lo escrito en el tomo se perderá: días, menhires, misiones, secretos, estandartes, estados y la hoja de juego.',
+            body: 'Todo lo escrito en el tomo se perderá: capítulos, misiones, notas, estados y la hoja de juego.',
             confirmLabel: 'Borrar todo',
           });
           if (!ok) return;
@@ -1415,7 +1479,7 @@ const renderDrawerMenu = () => {
 };
 
 /* -------------------------------------------------------------------------
-   Hoja de juego — form de estado entre sesiones
+   Hoja de juego — full-page sheet of inter-session state
    ------------------------------------------------------------------------- */
 
 const getSessionAt = (path) => {
@@ -1427,11 +1491,14 @@ const getSessionAt = (path) => {
   return node ?? '';
 };
 
-const sessionInput = ({ path, placeholder = '', label, autocapitalize = 'sentences', inputmode }) => {
+const sheetInput = ({ path, placeholder = '', label, autocapitalize = 'sentences', inputmode, variant }) => {
   const initial = getSessionAt(path);
+  const classes = ['gamesheet__input'];
+  if (variant === 'stat') classes.push('gamesheet__input--stat');
+  if (variant === 'location') classes.push('gamesheet__input--location');
   return el('input', {
     type: 'text',
-    class: 'sessionf__input',
+    class: classes.join(' '),
     value: initial,
     placeholder,
     'aria-label': label || path.join('.'),
@@ -1449,133 +1516,240 @@ const sessionInput = ({ path, placeholder = '', label, autocapitalize = 'sentenc
   });
 };
 
-const sessionTextarea = ({ path, placeholder = '', label, rows = 3 }) => {
-  const initial = getSessionAt(path);
-  return el('textarea', {
-    class: 'sessionf__textarea',
-    placeholder,
-    'aria-label': label || path.join('.'),
-    autocapitalize: 'sentences',
-    spellcheck: 'false',
-    rows,
-    dataset: { sessionPath: path.join('.') },
-    onchange: (e) => {
-      const from = getSessionAt(path);
-      const to = e.target.value;
-      if (from === to) return;
-      store.dispatch(makeCommand('SET_SESSION_FIELD', { path, from, to }));
-    },
-  }, initial);
-};
-
-const sessionField = ({ label, path, ...opts }) =>
-  el('label', { class: 'sessionf__field' },
-    el('span', { class: 'sessionf__label' }, label),
-    sessionInput({ path, label, ...opts }),
-  );
-
-const sessionTextareaField = ({ label, path, ...opts }) =>
-  el('label', { class: 'sessionf__field sessionf__field--block' },
-    el('span', { class: 'sessionf__label' }, label),
-    sessionTextarea({ path, label, ...opts }),
+const sheetField = ({ label, path, block, ...opts }) =>
+  el('label', { class: `gamesheet__field${block ? ' gamesheet__field--block' : ''}` },
+    el('span', { class: 'gamesheet__label' }, label),
+    sheetInput({ path, label, ...opts }),
   );
 
 // The four canonical heroes of Reyes de la Perdición. Order matches the
 // `players` array index, so persisted data carries over without migration.
 const CHARACTER_NAMES = ['Elgan', 'Gerdwyn', 'Iunis', 'Osbert'];
 
-const renderPlayerBlock = (idx) => {
-  const characterName = CHARACTER_NAMES[idx];
-  const summary = el('summary', { class: 'sessionf__summary' },
-    el('span', { class: 'sessionf__summary-mark' }, icon('chevronRight')),
-    el('span', {}, characterName),
-  );
-  const block = el('details', { class: 'sessionf__player' }, summary);
+// One small runic sigil per character. These are decorative SVGs (no semantic
+// meaning) — each is hand-drawn to feel like a personal mark inscribed in ink.
+const CHARACTER_SIGILS = [
+  // Elgan — crossed spears within a sun-disc
+  '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="16" r="11"/><path d="M16 5v22M5 16h22"/><path d="M8.5 8.5l15 15M23.5 8.5l-15 15" opacity=".55"/><circle cx="16" cy="16" r="2.4" fill="currentColor" stroke="none"/></svg>',
+  // Gerdwyn — triple knot
+  '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 5c4 3 4 9 0 12s-4 9 0 12"/><path d="M16 5c-4 3-4 9 0 12s4 9 0 12"/><circle cx="16" cy="16" r="1.6" fill="currentColor" stroke="none"/></svg>',
+  // Iunis — crescent and star
+  '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 5a11 11 0 1 0 0 22 8 8 0 1 1 0-22z"/><path d="M9 9l1 2 2 .5-1.5 1.5.5 2-2-1-2 1 .5-2L6 11.5l2-.5z" fill="currentColor" stroke="none" opacity=".75"/></svg>',
+  // Osbert — antler / branching tree
+  '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 27V8"/><path d="M16 13l-4-4M16 13l4-4M16 18l-5-3M16 18l5-3M16 9l-2-3M16 9l2-3"/><circle cx="16" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>',
+];
 
-  const numField = (key, label) =>
-    el('label', { class: 'sessionf__stat' },
-      el('span', { class: 'sessionf__label' }, label),
-      sessionInput({
+const sigilNode = (idx) => {
+  const wrap = el('span', { class: 'gamesheet__sigil', 'aria-hidden': 'true' });
+  const parsed = ICON_PARSER.parseFromString(CHARACTER_SIGILS[idx], 'image/svg+xml');
+  wrap.append(parsed.documentElement);
+  return wrap;
+};
+
+// Each hero now owns a list of items/notes that behaves like the Andanzas
+// Notes section — add via prompt, delete with confirm. Items survive across
+// hero removal/re-add because the data lives in `players[idx]`, not in the
+// selectedHeroes list.
+const renderHeroItemRows = (heroIdx, items) => {
+  if (items.length === 0) return null;
+  const list = el('ul', { class: 'ledger__list ledger__list--notes' });
+  items.forEach((it, idx) => {
+    list.append(
+      el('li', { class: 'ledger__note' },
+        el('button', {
+          type: 'button',
+          class: 'ledger__note-text',
+          'aria-label': 'Editar nota',
+          onclick: async () => {
+            const result = await askEditItem({
+              title: 'Editar nota',
+              textLabel: '¿Qué se quiere recordar?',
+              textValue: it.text || '',
+            });
+            if (!result) return;
+            const to = { ...it, text: result.text };
+            if (to.text === (it.text || '')) return;
+            store.dispatch(makeCommand('UPDATE_HERO_ITEM', { heroIdx, id: it.id, from: it, to }));
+          },
+        }, it.text),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-del',
+          'aria-label': 'Borrar nota',
+          onclick: async () => {
+            const ok = await askConfirm({
+              title: '¿Tachar la nota?',
+              body: 'La nota se perderá.',
+            });
+            if (!ok) return;
+            store.dispatch(makeCommand('REMOVE_HERO_ITEM', { heroIdx, from: it, index: idx }));
+          },
+        }, icon('cross')),
+      )
+    );
+  });
+  return list;
+};
+
+const renderHeroItemsSection = (heroIdx, heroName) => {
+  const items = store.state.doc.session?.players?.[heroIdx]?.items || [];
+  return renderLedgerSection({
+    title: 'Objetos / Notas',
+    addLabel: 'anotar',
+    onAdd: async () => {
+      const text = await askPrompt({
+        title: `Anotar para ${heroName}`,
+        label: '¿Qué se quiere recordar?',
+        placeholder: 'Una bolsa de monedas, una llave oxidada…',
+      });
+      if (!text) return;
+      const it = { id: newId(), text };
+      store.dispatch(makeCommand('ADD_HERO_ITEM', { heroIdx, to: it, index: items.length }));
+    },
+    body: renderHeroItemRows(heroIdx, items),
+  });
+};
+
+const renderPlayerCard = (idx) => {
+  const characterName = CHARACTER_NAMES[idx];
+  const stat = (key, label, short) =>
+    el('label', { class: 'gamesheet__stat' },
+      el('span', { class: 'gamesheet__stat-label' }, short || label),
+      sheetInput({
         path: ['players', idx, key],
         placeholder: '0',
         label: `${characterName}, ${label}`,
         autocapitalize: 'none',
         inputmode: 'numeric',
+        variant: 'stat',
       }),
     );
+  const rubric = (label) =>
+    el('div', { class: 'gamesheet__rubric' },
+      el('span', { class: 'gamesheet__rubric-mark' }),
+      el('span', {}, label),
+      el('span', { class: 'gamesheet__rubric-mark' }),
+    );
+  const statGroup = (label, gridClass, ...stats) =>
+    el('div', { class: 'gamesheet__stat-group' },
+      rubric(label),
+      el('div', { class: `gamesheet__stats ${gridClass}` }, ...stats),
+    );
 
-  block.append(
-    el('div', { class: 'sessionf__player-body' },
-      sessionField({
-        label: 'Localización',
-        path: ['players', idx, 'location'],
-        placeholder: 'Cuagh Eithne',
-        autocapitalize: 'words',
-      }),
-      el('div', { class: 'sessionf__group-title' }, 'Habilidades'),
-      el('div', { class: 'sessionf__stats sessionf__stats--3' },
-        numField('agresividad',    'Agresividad'),
-        numField('audacia',        'Audacia'),
-        numField('logica',         'Lógica'),
-        numField('empatia',        'Empatía'),
-        numField('cautela',        'Cautela'),
-        numField('espiritualidad', 'Espiritualidad'),
+  return el('article', { class: 'gamesheet__player', dataset: { hero: characterName.toLowerCase() } },
+    el('header', { class: 'gamesheet__player-head' },
+      sigilNode(idx),
+      el('h3', { class: 'gamesheet__player-name' }, characterName),
+      el('span', { class: 'gamesheet__player-rule', 'aria-hidden': 'true' }),
+      el('button', {
+        type: 'button',
+        class: 'gamesheet__player-remove',
+        'aria-label': `Quitar a ${characterName} de la sesión`,
+        title: 'Quitar de la sesión',
+        onclick: async () => {
+          const ok = await askConfirm({
+            title: `¿Quitar a ${characterName}?`,
+            body: `Sus datos quedarán guardados en el tomo; podrás volver a añadirlo más tarde.`,
+            confirmLabel: 'Quitar',
+            cancelLabel: 'Conservar',
+          });
+          if (!ok) return;
+          const selected = store.state.doc.session?.selectedHeroes || [];
+          const position = selected.indexOf(idx);
+          store.dispatch(makeCommand('REMOVE_HERO', { from: idx, index: position >= 0 ? position : selected.length }));
+        },
+      }, icon('cross')),
+    ),
+    el('div', { class: 'gamesheet__player-body' },
+      el('label', { class: 'gamesheet__field gamesheet__field--block gamesheet__field--inline' },
+        el('span', { class: 'gamesheet__label' }, 'Localización'),
+        sheetInput({
+          path: ['players', idx, 'location'],
+          placeholder: '101',
+          label: `${characterName}, Localización`,
+          autocapitalize: 'none',
+          inputmode: 'numeric',
+          variant: 'location',
+        }),
       ),
-      el('div', { class: 'sessionf__group-title' }, 'Vitalidad'),
-      el('div', { class: 'sessionf__stats sessionf__stats--3' },
-        numField('energia', 'Energía'),
-        numField('salud',   'Salud'),
-        numField('terror',  'Terror'),
+      // Stat groups stack on narrow viewports and pivot into a 3-column grid
+      // on desktop (see .gamesheet__player-stats media rule). Items / Notas
+      // always lives below as a full-width ledger section.
+      el('div', { class: 'gamesheet__player-stats' },
+        statGroup('Habilidades', 'gamesheet__stats--3',
+          stat('agresividad',    'Agresividad',    'Agresividad'),
+          stat('audacia',        'Audacia',        'Audacia'),
+          stat('logica',         'Lógica',         'Lógica'),
+          stat('empatia',        'Empatía',        'Empatía'),
+          stat('cautela',        'Cautela',        'Cautela'),
+          stat('espiritualidad', 'Espiritualidad', 'Espiritual.'),
+        ),
+        statGroup('Vitalidad', 'gamesheet__stats--3',
+          stat('energia', 'Energía', 'Energía'),
+          stat('salud',   'Salud',   'Salud'),
+          stat('terror',  'Terror',  'Terror'),
+        ),
+        statGroup('Recursos', 'gamesheet__stats--4',
+          stat('food',   'Comida',      'Comida'),
+          stat('wealth', 'Riqueza',     'Riqueza'),
+          stat('magic',  'Magia',       'Magia'),
+          stat('exp',    'Experiencia', 'Exp.'),
+        ),
       ),
-      el('div', { class: 'sessionf__group-title' }, 'Recursos'),
-      el('div', { class: 'sessionf__stats sessionf__stats--4' },
-        numField('food',   'Comida'),
-        numField('wealth', 'Riqueza'),
-        numField('magic',  'Magia'),
-        numField('exp',    'Experiencia'),
-      ),
-      sessionTextareaField({
-        label: 'Objetos / Secretos',
-        path: ['players', idx, 'items'],
-        placeholder: 'Una bolsa de monedas, una llave oxidada…',
-        rows: 3,
-      }),
+      renderHeroItemsSection(idx, characterName),
     ),
   );
-  return block;
 };
 
-const renderSessionForm = () => {
-  const form = el('form', { class: 'sessionf', onsubmit: (e) => e.preventDefault() });
+const renderHeroes = () => {
+  const scene = el('section', { class: 'scene gamesheet' });
 
-  form.append(
-    el('div', { class: 'sessionf__group' },
-      el('div', { class: 'sessionf__group-title' }, 'Estado compartido'),
-      sessionField({ label: 'Fichas de Tiempo / Misión', path: ['timeTokens'], placeholder: '0', autocapitalize: 'none' }),
-      el('div', { class: 'sessionf__pair' },
-        sessionField({ label: 'Compañero',  path: ['companion', 'name'],     placeholder: 'Nombre', autocapitalize: 'words' }),
-        sessionField({ label: 'Localiz.',   path: ['companion', 'location'], placeholder: 'Lugar',  autocapitalize: 'words' }),
-      ),
-      el('div', { class: 'sessionf__pair' },
-        sessionField({ label: 'Guardianes', path: ['guardians', 'name'],     placeholder: 'Nombre', autocapitalize: 'words' }),
-        sessionField({ label: 'Localiz.',   path: ['guardians', 'location'], placeholder: 'Lugar',  autocapitalize: 'words' }),
-      ),
-      sessionField({ label: 'Roca Guía — localización',          path: ['guideStone',    'location'], placeholder: 'Lugar', autocapitalize: 'words' }),
-      sessionField({ label: 'Rey de la Perdición — localización', path: ['perditionKing', 'location'], placeholder: 'Lugar', autocapitalize: 'words' }),
-      sessionTextareaField({
-        label: 'Notas',
-        path: ['notes'],
-        placeholder: 'Apuntes para la próxima sesión…',
-        rows: 4,
-      }),
-    ),
-    el('div', { class: 'sessionf__players' },
-      el('div', { class: 'sessionf__group-title' }, 'Jugadores'),
-      ...Array.from({ length: 4 }, (_, i) => renderPlayerBlock(i)),
-    ),
+  scene.append(
+    el('h2', { class: 'scene__title gamesheet__title' }, 'Héroes'),
+    el('p',  { class: 'scene__sub' }, 'los compañeros de andanzas'),
+    flourish(),
   );
 
-  return form;
+  const session = store.state.doc.session || {};
+  const selected = Array.isArray(session.selectedHeroes) ? session.selectedHeroes : [];
+  const available = CHARACTER_NAMES.map((_, i) => i).filter((i) => !selected.includes(i));
+
+  const heroesHead = el('div', { class: 'gamesheet__heroes-head' },
+    el('span', { class: 'gamesheet__heroes-mark', 'aria-hidden': 'true' }),
+    el('h3', { class: 'gamesheet__heroes-title' }, 'Héroes'),
+    el('span', { class: 'gamesheet__heroes-mark', 'aria-hidden': 'true' }),
+  );
+  scene.append(heroesHead);
+
+  const heroesGrid = el('div', { class: 'gamesheet__heroes' });
+  for (const idx of selected) heroesGrid.append(renderPlayerCard(idx));
+
+  // The add card sits inside the grid so on wide screens it slots in beside
+  // existing heroes; on narrow it stacks below. It only renders while there
+  // are heroes left to choose from.
+  if (available.length > 0) {
+    heroesGrid.append(
+      el('button', {
+        type: 'button',
+        class: 'gamesheet__add-hero',
+        dataset: { empty: selected.length === 0 ? 'true' : 'false' },
+        onclick: async () => {
+          const pick = await askHeroPicker(available);
+          if (pick == null) return;
+          store.dispatch(makeCommand('ADD_HERO', { to: pick, index: selected.length }));
+        },
+      },
+        el('span', { class: 'gamesheet__add-hero-mark', 'aria-hidden': 'true' }, icon('plus')),
+        el('span', { class: 'gamesheet__add-hero-label' },
+          selected.length === 0 ? 'Añadir el primer héroe' : 'Añadir otro héroe',
+        ),
+      ),
+    );
+  }
+
+  scene.append(heroesGrid);
+
+  return scene;
 };
 
 const renderDrawerLog = () => {
@@ -1598,19 +1772,15 @@ const renderDrawerLog = () => {
 };
 
 const renderDrawerBody = () => {
-  let content;
-  if (drawerMode === 'log')          content = renderDrawerLog();
-  else if (drawerMode === 'session') content = renderSessionForm();
-  else                               content = renderDrawerMenu();
-  drawerBody.replaceChildren(content);
+  if (!drawerEl) return;
+  const content = (drawerMode === 'log') ? renderDrawerLog() : renderDrawerMenu();
+  drawerEl._body.replaceChildren(content);
 };
 
 drawerKnob.addEventListener('click', toggleDrawer);
-drawerClose.addEventListener('click', closeDrawer);
-drawerBackdrop.addEventListener('click', closeDrawer);
-drawerBack.addEventListener('click', () => setDrawerMode('menu'));
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && drawerOpen) {
+  if (e.key !== 'Escape') return;
+  if (drawerOpen) {
     e.preventDefault();
     closeDrawer();
   }
@@ -1636,18 +1806,31 @@ const captureFocus = () => {
   if (a.classList?.contains('status-search')) {
     return { kind: 'status-search', sel: a.selectionStart ?? null };
   }
+  if (a.dataset?.sessionPath) {
+    return { kind: 'session-field', path: a.dataset.sessionPath, sel: a.selectionStart ?? null };
+  }
+  if (a.dataset?.guideStoneField) {
+    return { kind: 'guidestone-field', key: a.dataset.guideStoneField, sel: a.selectionStart ?? null };
+  }
   return null;
 };
 
 const restoreFocus = (snap) => {
   if (!snap) return;
-  if (snap.kind === 'status-search') {
-    const input = document.querySelector('.status-search');
+  const focusBy = (selector, sel) => {
+    const input = document.querySelector(selector);
     if (!input) return;
     input.focus({ preventScroll: true });
-    if (snap.sel != null) {
-      try { input.setSelectionRange(snap.sel, snap.sel); } catch {}
+    if (sel != null) {
+      try { input.setSelectionRange(sel, sel); } catch {}
     }
+  };
+  if (snap.kind === 'status-search') {
+    focusBy('.status-search', snap.sel);
+  } else if (snap.kind === 'session-field') {
+    focusBy(`[data-session-path="${CSS.escape(snap.path)}"]`, snap.sel);
+  } else if (snap.kind === 'guidestone-field') {
+    focusBy(`[data-guide-stone-field="${CSS.escape(snap.key)}"]`, snap.sel);
   }
 };
 
@@ -1656,15 +1839,11 @@ const render = () => {
   const doc = store.state.doc;
   setTabs(doc.tab);
   view.replaceChildren();
-  if (doc.tab === 'exploration')      view.append(renderExploration(doc));
-  else if (doc.tab === 'journal')     view.append(renderJournal(doc));
-  else if (doc.tab === 'diplomacy')   view.append(renderDiplomacy(doc));
+  if (doc.tab === 'heroes')           view.append(renderHeroes());
+  else if (doc.tab === 'exploration') view.append(renderExploration(doc));
   else                                view.append(renderStatuses(doc));
   undoBtn.disabled = !store.canUndo();
   redoBtn.disabled = !store.canRedo();
-  // Only the log view needs to track live state — the menu is static, and
-  // the session form is uncontrolled (rebuilding it would steal focus and
-  // wipe in-progress typing).
   if (drawerOpen && drawerMode === 'log') renderDrawerBody();
   restoreFocus(snap);
 };

@@ -32,48 +32,6 @@ const insertAt = (list, item, index) => {
 const removeById = (list, id) => list.filter((item) => item.id !== id);
 
 export const COMMANDS = {
-  SET_DAY: {
-    apply: (s, p) => replaceField(s, 'day', p.to),
-    revert: (s, p) => replaceField(s, 'day', p.from),
-    coalesceKey: () => 'day',
-  },
-
-  SET_TIME_OF_DAY: {
-    apply: (s, p) => replaceField(s, 'timeOfDay', p.to),
-    revert: (s, p) => replaceField(s, 'timeOfDay', p.from),
-    coalesceKey: () => 'timeOfDay',
-  },
-
-  ADD_MENHIR: {
-    apply: (s, p) => {
-      const list = ensureCollection(s, 'menhirs');
-      s.doc = { ...docFrom(s), menhirs: insertAt(list, p.to, p.index) };
-    },
-    revert: (s, p) => {
-      const list = ensureCollection(s, 'menhirs');
-      s.doc = { ...docFrom(s), menhirs: removeById(list, p.to.id) };
-    },
-    coalesceKey: (p) => `add:${p.to.id}`,
-  },
-
-  REMOVE_MENHIR: {
-    apply: (s, p) => {
-      const list = ensureCollection(s, 'menhirs');
-      s.doc = { ...docFrom(s), menhirs: removeById(list, p.from.id) };
-    },
-    revert: (s, p) => {
-      const list = ensureCollection(s, 'menhirs');
-      s.doc = { ...docFrom(s), menhirs: insertAt(list, p.from, p.index) };
-    },
-    coalesceKey: (p) => `remove:${p.from.id}`,
-  },
-
-  SET_MENHIR_STATE: {
-    apply: (s, p) => replaceListItem(s, 'menhirs', p.id, (m) => ({ ...m, state: p.to })),
-    revert: (s, p) => replaceListItem(s, 'menhirs', p.id, (m) => ({ ...m, state: p.from })),
-    coalesceKey: (p) => `menhirState:${p.id}`,
-  },
-
   ADD_QUEST: {
     apply: (s, p) => {
       const list = ensureCollection(s, 'quests');
@@ -104,58 +62,10 @@ export const COMMANDS = {
     coalesceKey: (p) => `toggleQuest:${p.id}`,
   },
 
-  ADD_SECRET: {
-    apply: (s, p) => {
-      const list = ensureCollection(s, 'secrets');
-      s.doc = { ...docFrom(s), secrets: [...list, p.to] };
-    },
-    revert: (s, p) => {
-      const list = ensureCollection(s, 'secrets');
-      s.doc = { ...docFrom(s), secrets: list.filter((n) => n !== p.to) };
-    },
-    coalesceKey: (p) => `addSecret:${p.to}`,
-  },
-
-  REMOVE_SECRET: {
-    apply: (s, p) => {
-      const list = ensureCollection(s, 'secrets');
-      s.doc = { ...docFrom(s), secrets: list.filter((n) => n !== p.from) };
-    },
-    revert: (s, p) => {
-      const list = ensureCollection(s, 'secrets');
-      s.doc = { ...docFrom(s), secrets: [...list, p.from].sort((a, b) => a - b) };
-    },
-    coalesceKey: (p) => `removeSecret:${p.from}`,
-  },
-
-  ADD_FACTION: {
-    apply: (s, p) => {
-      const list = ensureCollection(s, 'factions');
-      s.doc = { ...docFrom(s), factions: insertAt(list, p.to, p.index) };
-    },
-    revert: (s, p) => {
-      const list = ensureCollection(s, 'factions');
-      s.doc = { ...docFrom(s), factions: removeById(list, p.to.id) };
-    },
-    coalesceKey: (p) => `addFaction:${p.to.id}`,
-  },
-
-  REMOVE_FACTION: {
-    apply: (s, p) => {
-      const list = ensureCollection(s, 'factions');
-      s.doc = { ...docFrom(s), factions: removeById(list, p.from.id) };
-    },
-    revert: (s, p) => {
-      const list = ensureCollection(s, 'factions');
-      s.doc = { ...docFrom(s), factions: insertAt(list, p.from, p.index) };
-    },
-    coalesceKey: (p) => `removeFaction:${p.from.id}`,
-  },
-
-  SET_FACTION_VALUE: {
-    apply: (s, p) => replaceListItem(s, 'factions', p.id, (f) => ({ ...f, value: p.to })),
-    revert: (s, p) => replaceListItem(s, 'factions', p.id, (f) => ({ ...f, value: p.from })),
-    coalesceKey: (p) => `factionValue:${p.id}`,
+  UPDATE_QUEST: {
+    apply: (s, p) => replaceListItem(s, 'quests', p.id, () => p.to),
+    revert: (s, p) => replaceListItem(s, 'quests', p.id, () => p.from),
+    coalesceKey: (p) => `updateQuest:${p.id}`,
   },
 
   SET_ACTIVE_TAB: {
@@ -223,13 +133,63 @@ const checklistCommands = (listKey, prefix) => ({
     revert: (s, p) => replaceListItem(s, listKey, p.id, (it) => ({ ...it, done: p.from })),
     coalesceKey: (p) => `toggle${prefix}:${p.id}`,
   },
+  [`UPDATE_${prefix}`]: {
+    apply: (s, p) => replaceListItem(s, listKey, p.id, () => p.to),
+    revert: (s, p) => replaceListItem(s, listKey, p.id, () => p.from),
+    coalesceKey: (p) => `update${prefix}:${p.id}`,
+  },
+});
+
+// Add/remove/update triple without TOGGLE — for lists whose items aren't
+// done/undone. UPDATE replaces the whole item: payload is `{id, from, to}`
+// so undo restores the prior shape exactly.
+const listCommands = (listKey, prefix) => ({
+  [`ADD_${prefix}`]: {
+    apply: (s, p) => {
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: insertAt(list, p.to, p.index) };
+    },
+    revert: (s, p) => {
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: removeById(list, p.to.id) };
+    },
+    coalesceKey: (p) => `add${prefix}:${p.to.id}`,
+  },
+  [`REMOVE_${prefix}`]: {
+    apply: (s, p) => {
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: removeById(list, p.from.id) };
+    },
+    revert: (s, p) => {
+      const list = ensureCollection(s, listKey);
+      s.doc = { ...docFrom(s), [listKey]: insertAt(list, p.from, p.index) };
+    },
+    coalesceKey: (p) => `remove${prefix}:${p.from.id}`,
+  },
+  [`UPDATE_${prefix}`]: {
+    apply: (s, p) => replaceListItem(s, listKey, p.id, () => p.to),
+    revert: (s, p) => replaceListItem(s, listKey, p.id, () => p.from),
+    coalesceKey: (p) => `update${prefix}:${p.id}`,
+  },
 });
 
 Object.assign(COMMANDS,
   checklistCommands('sideQuests', 'SIDE_QUEST'),
-  checklistCommands('characters', 'CHARACTER'),
-  checklistCommands('locations',  'LOCATION'),
+  listCommands('timeTokens',     'TIME_TOKEN'),
+  listCommands('partners',       'PARTNER'),
+  listCommands('guardians',      'GUARDIAN'),
+  listCommands('perditionKings', 'PERDITION_KING'),
+  listCommands('guideStones',    'GUIDE_STONE'),
 );
+
+// Inline edit for guide-stone quadrants/center. The card surfaces five
+// text inputs (center + 4 quadrants) that users fill in over time as they
+// discover the surrounding locations, so we need a per-field update path.
+COMMANDS.SET_GUIDE_STONE_FIELD = {
+  apply: (s, p) => replaceListItem(s, 'guideStones', p.id, (g) => ({ ...g, [p.field]: p.to })),
+  revert: (s, p) => replaceListItem(s, 'guideStones', p.id, (g) => ({ ...g, [p.field]: p.from })),
+  coalesceKey: (p) => `guideStone:${p.id}:${p.field}`,
+};
 
 COMMANDS.ADD_NOTE = {
   apply: (s, p) => {
@@ -253,14 +213,18 @@ COMMANDS.REMOVE_NOTE = {
   },
   coalesceKey: (p) => `removeNote:${p.from.id}`,
 };
+COMMANDS.UPDATE_NOTE = {
+  apply: (s, p) => replaceListItem(s, 'notes', p.id, () => p.to),
+  revert: (s, p) => replaceListItem(s, 'notes', p.id, () => p.from),
+  coalesceKey: (p) => `updateNote:${p.id}`,
+};
 
 export const defaultSession = () => ({
-  timeTokens: '',
-  companion:     { name: '', location: '' },
-  guardians:     { name: '', location: '' },
-  guideStone:    { location: '' },
-  perditionKing: { location: '' },
-  notes: '',
+  // Hero data persists in this 4-slot array regardless of whether the hero
+  // is currently in play. `selectedHeroes` is the ordered list of indices the
+  // user has chosen to render — adding/removing only toggles visibility, the
+  // underlying stats never get wiped (so re-adding a hero restores them).
+  selectedHeroes: [],
   players: Array.from({ length: 4 }, () => ({
     name: '', location: '',
     // Habilidades del personaje
@@ -270,7 +234,9 @@ export const defaultSession = () => ({
     energia: '', salud: '', terror: '',
     // Recursos
     food: '', wealth: '', magic: '', exp: '',
-    items: '',
+    // Items/notes are a list of `{id, text}` entries — same shape as
+    // Andanzas notes.
+    items: [],
   })),
 });
 
@@ -291,6 +257,76 @@ COMMANDS.SET_SESSION_FIELD = {
   apply: (s, p) => setSessionAt(s, p.path, p.to),
   revert: (s, p) => setSessionAt(s, p.path, p.from),
   coalesceKey: (p) => `session:${p.path.join('.')}`,
+};
+
+const writeSelectedHeroes = (state, next) => {
+  const doc = docFrom(state);
+  const session = structuredClone(doc.session || defaultSession());
+  session.selectedHeroes = next;
+  state.doc = { ...doc, session };
+};
+
+COMMANDS.ADD_HERO = {
+  apply: (s, p) => {
+    const current = (docFrom(s).session?.selectedHeroes || []).slice();
+    if (!current.includes(p.to)) {
+      const next = current.slice();
+      next.splice(p.index ?? next.length, 0, p.to);
+      writeSelectedHeroes(s, next);
+    }
+  },
+  revert: (s, p) => {
+    const current = (docFrom(s).session?.selectedHeroes || []).slice();
+    writeSelectedHeroes(s, current.filter((h) => h !== p.to));
+  },
+  coalesceKey: (p) => `addHero:${p.to}`,
+};
+
+COMMANDS.REMOVE_HERO = {
+  apply: (s, p) => {
+    const current = (docFrom(s).session?.selectedHeroes || []).slice();
+    writeSelectedHeroes(s, current.filter((h) => h !== p.from));
+  },
+  revert: (s, p) => {
+    const current = (docFrom(s).session?.selectedHeroes || []).slice();
+    if (!current.includes(p.from)) {
+      const next = current.slice();
+      next.splice(p.index ?? next.length, 0, p.from);
+      writeSelectedHeroes(s, next);
+    }
+  },
+  coalesceKey: (p) => `removeHero:${p.from}`,
+};
+
+const updateHeroItems = (state, heroIdx, mutator) => {
+  const doc = docFrom(state);
+  const session = structuredClone(doc.session || defaultSession());
+  const player = session.players?.[heroIdx] || { ...defaultSession().players[0] };
+  const current = Array.isArray(player.items) ? player.items : [];
+  player.items = mutator(current);
+  if (!Array.isArray(session.players)) session.players = defaultSession().players;
+  session.players[heroIdx] = player;
+  state.doc = { ...doc, session };
+};
+
+COMMANDS.ADD_HERO_ITEM = {
+  apply: (s, p) => updateHeroItems(s, p.heroIdx, (list) => insertAt(list, p.to, p.index)),
+  revert: (s, p) => updateHeroItems(s, p.heroIdx, (list) => removeById(list, p.to.id)),
+  coalesceKey: (p) => `addHeroItem:${p.heroIdx}:${p.to.id}`,
+};
+
+COMMANDS.REMOVE_HERO_ITEM = {
+  apply: (s, p) => updateHeroItems(s, p.heroIdx, (list) => removeById(list, p.from.id)),
+  revert: (s, p) => updateHeroItems(s, p.heroIdx, (list) => insertAt(list, p.from, p.index)),
+  coalesceKey: (p) => `removeHeroItem:${p.heroIdx}:${p.from.id}`,
+};
+
+COMMANDS.UPDATE_HERO_ITEM = {
+  apply: (s, p) => updateHeroItems(s, p.heroIdx,
+    (list) => list.map((it) => (it.id === p.id ? p.to : it))),
+  revert: (s, p) => updateHeroItems(s, p.heroIdx,
+    (list) => list.map((it) => (it.id === p.id ? p.from : it))),
+  coalesceKey: (p) => `updateHeroItem:${p.heroIdx}:${p.id}`,
 };
 
 const writeStatusPip = (state, id, pip, filled) => {

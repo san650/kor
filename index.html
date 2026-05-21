@@ -93,25 +93,6 @@
       </span>
       <span class="tab__name">Andanzas</span>
     </button>
-    <button class="tab" role="tab" data-tab="journal" aria-selected="false">
-      <span class="tab__glyph" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 5.5 C6 4.8 9 4.4 12 4.7 C15 4.4 18 4.8 20 5.5 V19.2 C18 18.4 15 18 12 18.4 C9 18 6 18.4 4 19.2 Z"/>
-          <path d="M12 4.7 V18.4"/>
-          <path d="M7 9 H10 M7 12 H10 M14 9 H17 M14 12 H17"/>
-        </svg>
-      </span>
-      <span class="tab__name">Diario</span>
-    </button>
-    <button class="tab" role="tab" data-tab="diplomacy" aria-selected="false">
-      <span class="tab__glyph" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 4 L13 13 M14.5 14.5 L17 17 M15 20 H20 V15 M19 16 L16.2 18.8"/>
-          <path d="M20 4 L11 13 M9.5 14.5 L7 17 M9 20 H4 V15 M5 16 L7.8 18.8"/>
-        </svg>
-      </span>
-      <span class="tab__name">Diplomacia</span>
-    </button>
     <button class="tab" role="tab" data-tab="statuses" aria-selected="false">
       <span class="tab__glyph" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -121,31 +102,16 @@
       </span>
       <span class="tab__name">Estados</span>
     </button>
+    <button class="tab" role="tab" data-tab="heroes" aria-selected="false">
+      <span class="tab__glyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 4 V21"/>
+          <path d="M6 5 H18 L15 9 L18 13 H6"/>
+        </svg>
+      </span>
+      <span class="tab__name">Héroes</span>
+    </button>
   </nav>
-
-  <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
-  <aside id="drawer" class="drawer" hidden role="dialog" aria-modal="false" aria-labelledby="drawer-title">
-    <div class="drawer__rail" aria-hidden="true">
-      <span class="drawer__rail-handle"></span>
-    </div>
-    <div class="drawer__head">
-      <button id="drawer-back" type="button" class="drawer__back" hidden aria-label="Volver">
-        <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M15 6 L9 12 L15 18"/>
-        </svg>
-      </button>
-      <h2 id="drawer-title" class="drawer__title">
-        <span id="drawer-title-text">Más opciones</span>
-        <span id="drawer-version" class="drawer__version" aria-hidden="true"></span>
-      </h2>
-      <button id="drawer-close" type="button" class="drawer__close" aria-label="Cerrar">
-        <svg viewBox="0 0 18 18" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-          <path d="M5 5 L13 13 M13 5 L5 13"/>
-        </svg>
-      </button>
-    </div>
-    <div id="drawer-body" class="drawer__body"></div>
-  </aside>
 
   <dialog id="prompt-dialog" class="prompt" aria-labelledby="prompt-title">
     <form method="dialog" class="prompt__card">
@@ -169,6 +135,35 @@
       <div class="prompt__actions">
         <button type="button" class="btn btn--ghost" data-confirm-cancel>Conservar</button>
         <button type="submit" class="btn btn--blood" data-confirm-accept>Tachar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="hero-picker-dialog" class="prompt" aria-labelledby="hero-picker-title">
+    <form method="dialog" class="prompt__card prompt__card--picker">
+      <h2 id="hero-picker-title" class="prompt__title">Añadir héroe</h2>
+      <p class="prompt__body">Elige uno de los héroes que jugarán esta sesión.</p>
+      <ul id="hero-picker-list" class="hero-picker"></ul>
+      <div class="prompt__actions">
+        <button type="button" class="btn btn--ghost" data-hero-picker-cancel>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="edit-dialog" class="prompt" aria-labelledby="edit-title">
+    <form method="dialog" class="prompt__card">
+      <h2 id="edit-title" class="prompt__title">Editar</h2>
+      <label class="prompt__field">
+        <span id="edit-label-text" class="prompt__label">Descripción</span>
+        <input id="edit-input-text" type="text" autocomplete="off" autocapitalize="sentences" spellcheck="false" />
+      </label>
+      <label id="edit-field-loc" class="prompt__field" hidden>
+        <span class="prompt__label">N.º de localización</span>
+        <input id="edit-input-loc" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="numeric" placeholder="101" />
+      </label>
+      <div class="prompt__actions">
+        <button type="button" class="btn btn--ghost" data-edit-cancel>Cancelar</button>
+        <button type="submit" class="btn btn--ink" data-edit-accept>Guardar</button>
       </div>
     </form>
   </dialog>

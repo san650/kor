@@ -288,388 +288,349 @@ body {
 }
 
 /* =========================================================================
-   The wayfaring page
+   Ledger sections — compact heading (title · gilded rule · add-chip) and
+   tight dashed rows. The add-chip lives in the heading so an empty section
+   reads as a single line, not a wasted paragraph.
    ========================================================================= */
 
-.daycard {
+.ledger {
+  margin: .65rem 0 0;
+}
+.ledger__head {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: .6rem;
-  padding: .5rem 0 .85rem;
-  border-bottom: 1px solid rgba(122, 90, 40, .35);
-  margin-bottom: 1.1rem;
+  gap: .65rem;
+  padding: 0 0 .15rem;
+  margin: 1.15rem 0 .35rem;
 }
-.daycard__label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .7rem;
-  letter-spacing: .18em;
-  color: var(--ash);
-  text-transform: lowercase;
-}
-.daycard__value {
+.ledger__title {
   font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 2.4rem;
-  line-height: 1;
+  font-weight: 400;
+  font-size: 1.05rem;
+  margin: 0;
   color: var(--ink);
-  text-align: center;
-  letter-spacing: .02em;
+  letter-spacing: .01em;
+  white-space: nowrap;
 }
-.daycard__value sup {
-  font-size: .55rem;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  letter-spacing: .14em;
-  color: var(--ash);
-  vertical-align: top;
-  margin-left: .15em;
+.ledger__title::first-letter {
+  color: var(--blood);
+  font-size: 1.18em;
 }
-.daycard__center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .05rem;
-}
-.menhir__body {
-  display: flex;
-  flex-direction: column;
-  gap: .1rem;
-  min-width: 0;
-}
-.faction__pipwrap {
-  display: grid;
-  gap: .2rem;
-  justify-items: center;
-}
-.faction__value {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1rem;
-  color: var(--ink);
-  letter-spacing: .04em;
-}
-.stepper {
-  width: 36px; height: 36px; min-height: 36px;
-  display: grid; place-items: center;
-  background: transparent;
-  border: 1px solid var(--ink-faint);
-  border-radius: 50%;
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.2rem;
-  line-height: 1;
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: color .15s, border-color .15s, background .15s;
-}
-.stepper:hover { color: var(--blood); border-color: var(--blood); }
-.stepper:active { background: rgba(122,26,23,.08); }
-
-/* Time of day — sun/moon track */
-.timetrack {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: .35rem;
-  margin: 0 0 1.2rem;
-}
-.timetrack__seg {
-  appearance: none;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--ink-faint);
-  padding: .5rem .15rem .55rem;
-  cursor: pointer;
-  font: inherit;
-  color: var(--ink-faint);
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .68rem;
-  letter-spacing: .14em;
-  text-transform: lowercase;
-  text-align: center;
-  position: relative;
-  transition: color .15s, border-color .15s;
-}
-.timetrack__glyph {
+.ledger__rule {
   display: block;
-  font-size: 1.4rem;
-  line-height: 1;
-  margin-bottom: .35rem;
-  font-family: 'IM Fell English Local', Georgia, serif;
-  color: var(--gold-deep);
-  transition: color .15s, transform .2s;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-deep) 0%, var(--gold-deep) 50%, transparent 100%);
+  opacity: .65;
 }
-.timetrack__seg[aria-pressed="true"] {
-  color: var(--blood);
-  border-color: var(--blood);
-}
-.timetrack__seg[aria-pressed="true"] .timetrack__glyph {
-  color: var(--blood);
-  transform: translateY(-1px);
-}
-
-/* Menhirs */
-.menhirs {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 .25rem;
-  display: flex;
-  flex-direction: column;
-}
-.menhir {
-  display: grid;
-  grid-template-columns: 22px 1fr auto;
-  align-items: center;
-  gap: .65rem;
-  padding: .7rem 0;
-  border-bottom: 1px dashed rgba(122, 90, 40, .35);
-}
-.menhir:last-child { border-bottom: none; }
-.menhir__mark {
-  width: 18px; height: 18px;
-  border: 1px solid var(--ink-soft);
+.ledger__add {
+  appearance: none;
+  -webkit-appearance: none;
   background: transparent;
-  display: grid; place-items: center;
-  cursor: pointer;
-  color: var(--blood);
-  font-family: 'IM Fell English Local', serif;
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0;
-  border-radius: 1px;
-  transition: background .15s, border-color .15s;
-}
-.menhir[data-state="lit"] .menhir__mark {
-  background: var(--blood);
-  border-color: var(--blood);
-  color: var(--vellum-hi);
-}
-.menhir[data-state="extinguished"] .menhir__mark {
-  background: var(--ash);
-  border-color: var(--ash);
-  color: var(--vellum-hi);
-}
-.menhir__name {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.05rem;
-  color: var(--ink);
-  word-break: break-word;
-}
-.menhir[data-state="extinguished"] .menhir__name {
-  color: var(--ash);
-  text-decoration: line-through;
-  text-decoration-color: rgba(106,85,56,.7);
-}
-.menhir__state {
+  border: 1px solid rgba(122,90,40,.4);
+  color: var(--ink-soft);
+  font: inherit;
   font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .62rem;
-  letter-spacing: .16em;
-  color: var(--ash);
-  text-transform: lowercase;
-}
-.menhir[data-state="lit"] .menhir__state { color: var(--blood); }
-.menhir__del {
-  background: none;
-  border: none;
-  color: var(--ink-faint);
-  cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: .25rem .35rem;
-  min-height: 32px;
-  min-width: 32px;
-  transition: color .15s;
-}
-.menhir__del:hover { color: var(--blood); }
-
-/* =========================================================================
-   Journal — quests + secrets
-   ========================================================================= */
-
-.quests { list-style: none; padding: 0; margin: 0; }
-.quest {
-  display: grid;
-  grid-template-columns: 24px 1fr auto;
-  gap: .65rem;
-  padding: .6rem 0;
-  align-items: start;
-  border-bottom: 1px dashed rgba(122, 90, 40, .35);
-}
-.quest:last-child { border-bottom: none; }
-.quest__check {
-  width: 22px;
-  height: 22px;
-  margin-top: 2px;
-  border: 1px solid var(--ink-soft);
-  background: var(--vellum-hi);
-  cursor: pointer;
-  padding: 0;
-  font-family: 'IM Fell English Local', serif;
-  color: var(--blood);
-  font-size: 1.15rem;
-  line-height: .9;
-  display: grid; place-items: center;
-  border-radius: 1px;
-}
-.quest__body {
-  display: flex;
-  flex-direction: column;
-  gap: .15rem;
-  min-width: 0;
-}
-.quest__code {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .62rem;
+  font-size: .58rem;
   letter-spacing: .18em;
-  color: var(--gold-deep);
   text-transform: lowercase;
-}
-.quest__title {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.05rem;
-  color: var(--ink);
-  word-break: break-word;
-}
-.quest[data-done="true"] .quest__title {
-  color: var(--ash);
-  text-decoration: line-through;
-  text-decoration-color: rgba(106,85,56,.7);
-}
-.quest__del {
-  background: none;
-  border: none;
-  color: var(--ink-faint);
+  padding: .25rem .55rem .25rem .35rem;
+  border-radius: 2px;
   cursor: pointer;
-  font-size: 1.1rem;
-  padding: .25rem .35rem;
-  min-height: 32px;
-  min-width: 32px;
-  transition: color .15s;
-}
-.quest__del:hover { color: var(--blood); }
-
-/* Notas — apuntes al margen */
-.notes {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.note {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: .65rem;
-  padding: .55rem 0;
-  align-items: start;
-  border-bottom: 1px dashed rgba(122, 90, 40, .35);
-}
-.note:last-child { border-bottom: none; }
-.note__text {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.02rem;
-  color: var(--ink);
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.4;
-}
-
-/* Secrets — a clutch of numbered chips */
-.secrets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem;
-  margin-top: .25rem;
-}
-.secret {
-  font-family: 'IM Fell English Local', serif;
-  font-size: 1rem;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 .5rem;
-  border: 1px solid var(--gold-deep);
-  background: linear-gradient(180deg, rgba(212,179,92,.18), rgba(168,133,63,.05));
-  color: var(--ink);
-  border-radius: 50%;
-  display: grid; place-items: center;
-  cursor: pointer;
-  letter-spacing: .04em;
-  position: relative;
-}
-.secret::after {
-  content: "";
-  position: absolute;
-  top: -6px; right: -6px;
-  width: 18px; height: 18px;
-  /* SVG with both colours baked in (blood circle, vellum X) so the badge
-     renders as bitmap without relying on font-rendered ✕. */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'><circle cx='9' cy='9' r='9' fill='%237a1a17'/><path d='M6 6 L12 12 M12 6 L6 12' stroke='%23f3e9cf' stroke-width='2.2' stroke-linecap='round' fill='none'/></svg>");
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity .15s;
-}
-.secret:hover::after, .secret:focus-visible::after { opacity: 1; }
-
-/* =========================================================================
-   Diplomacy — faction tracks
-   ========================================================================= */
-
-.factions {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: .9rem;
-}
-.faction {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: .25rem .5rem;
-  padding: .25rem 0 .55rem;
-  border-bottom: 1px solid rgba(122, 90, 40, .25);
-}
-.faction__name {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.1rem;
-  color: var(--ink);
-}
-.faction__del {
-  background: none;
-  border: none;
-  color: var(--ink-faint);
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0 .25rem;
-  min-height: 32px;
-}
-.faction__del:hover { color: var(--blood); }
-.faction__track {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  min-height: 28px;
+  display: inline-flex;
   align-items: center;
-  gap: .4rem;
-  margin-top: .25rem;
+  gap: .25rem;
+  white-space: nowrap;
+  transition: color .14s, border-color .14s, background .14s;
 }
-.faction__pips {
-  display: flex;
-  gap: 3px;
-  justify-content: space-between;
-  padding: 0 .25rem;
+.ledger__add:hover {
+  color: var(--blood);
+  border-color: var(--blood);
+  background: rgba(122,26,23,.05);
 }
-.faction__pip {
-  width: 14px; height: 14px;
+.ledger__add:active { transform: translateY(1px); }
+.ledger__add svg {
+  width: .85em;
+  height: .85em;
+  display: block;
+}
+.ledger__add-label { display: inline-block; }
+
+.ledger__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.ledger__row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  gap: .55rem;
+  align-items: center;
+  padding: .35rem 0;
+  border-bottom: 1px dashed rgba(122, 90, 40, .28);
+}
+.ledger__row:last-child { border-bottom: none; }
+.ledger__check {
+  width: 18px;
+  height: 18px;
   border: 1px solid var(--ink-soft);
-  border-radius: 50%;
   background: var(--vellum-hi);
   cursor: pointer;
   padding: 0;
+  color: var(--vellum-hi);
+  display: grid;
+  place-items: center;
+  border-radius: 1px;
   transition: background .12s, border-color .12s;
 }
-.faction__pip[data-filled="true"] {
+.ledger__check svg { width: .8em; height: .8em; }
+.ledger__row[data-done="true"] .ledger__check {
   background: var(--blood);
   border-color: var(--blood-deep);
 }
-.faction__pip[data-pivot="true"] {
-  outline: 1px solid var(--gold-bright);
+/* row-body is a button (clicking it opens the edit modal) but it must look
+   like plain text — strip every default chrome the UA tries to add, then
+   layer a subtle hover/focus affordance so users know it's interactive. */
+.ledger__row-body {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  min-width: 0;
+  flex-wrap: wrap;
+  padding: .15rem .35rem;
+  margin: -.15rem -.35rem;
+  border-radius: 2px;
+  transition: background .14s;
+}
+.ledger__row-body:hover {
+  background: rgba(122, 90, 40, .07);
+}
+.ledger__row-body:focus-visible {
+  outline: 1.5px solid var(--gold-deep);
   outline-offset: 1px;
+  background: rgba(122, 90, 40, .04);
+}
+.ledger__row-loc {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  color: var(--blood);
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid rgba(122,26,23,.35);
+  border-radius: 2px;
+  background: rgba(232,220,192,.6);
+  font-variant-numeric: tabular-nums;
+}
+.ledger__row-title {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: .98rem;
+  color: var(--ink);
+  word-break: break-word;
+  line-height: 1.25;
+}
+.ledger__row[data-done="true"] .ledger__row-title {
+  color: var(--ash);
+  text-decoration: line-through;
+  text-decoration-color: rgba(106,85,56,.55);
+}
+.ledger__row-del {
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+  min-height: 30px;
+  min-width: 30px;
+  display: grid;
+  place-items: center;
+  transition: color .14s;
+}
+.ledger__row-del:hover { color: var(--blood); }
+.ledger__row-del svg { width: .82em; height: .82em; }
+
+/* Shared-state rows have no checkbox — just text + optional location plaque
+   + delete chip. Overrides the default 3-col grid to drop the checkbox slot. */
+.ledger__row--text {
+  grid-template-columns: 1fr auto;
+}
+
+/* Notes look like brief marginalia: no checkbox, slightly more vertical
+   padding so the prose breathes, but still much tighter than before. */
+.ledger__list--notes .ledger__note {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .55rem;
+  padding: .45rem 0;
+  align-items: start;
+  border-bottom: 1px dashed rgba(122, 90, 40, .28);
+}
+.ledger__list--notes .ledger__note:last-child { border-bottom: none; }
+.ledger__note-text {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: .98rem;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.35;
+  padding: .15rem .35rem;
+  margin: -.15rem -.35rem;
+  border-radius: 2px;
+  transition: background .14s;
+  width: 100%;
+}
+.ledger__note-text:hover {
+  background: rgba(122, 90, 40, .07);
+}
+.ledger__note-text:focus-visible {
+  outline: 1.5px solid var(--gold-deep);
+  outline-offset: 1px;
+  background: rgba(122, 90, 40, .04);
+}
+
+/* =========================================================================
+   Roca Guía — a 2×2 grid of quadrant location plaques surrounding a circular
+   center plaque holding the stone's own location number. Each cell holds a
+   free-form text input that the user fills in as they discover the
+   surrounding cards. Up to four stones, capped by the UI.
+   ========================================================================= */
+
+.guidestones {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .85rem;
+  margin: .25rem 0;
+}
+
+.guidestone {
+  position: relative;
+  border: 1px solid var(--gold-deep);
+  border-radius: 4px;
+  padding: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(243,233,207,.85) 0%, rgba(232,220,192,.55) 60%, rgba(212,179,92,.18) 100%),
+    repeating-linear-gradient(135deg, rgba(168,133,63,.05) 0 8px, transparent 8px 16px);
+  box-shadow:
+    inset 0 0 0 1px rgba(232,220,192,.55),
+    0 1px 0 rgba(0,0,0,.05);
+}
+.guidestone__remove {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(232,220,192,.7);
+  border: 1px solid transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 2px;
+  z-index: 2;
+  transition: color .14s, border-color .14s, background .14s;
+}
+.guidestone__remove:hover {
+  color: var(--blood);
+  border-color: rgba(122,26,23,.4);
+  background: rgba(232,220,192,.95);
+}
+.guidestone__remove svg { width: .72em; height: .72em; display: block; }
+
+/* The 2×2 grid of quadrants. The center cell is overlaid via positioned
+   pseudo so the 4 inputs stay on a clean diagonal cross — easier to read
+   as "north / east / south / west" of the stone. */
+.guidestone__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  aspect-ratio: 1.6;
+  min-height: 200px;
+}
+.guidestone__grid::before {
+  /* The dividing cross between quadrants — drawn as inset 1px lines so it
+     reads like inked rules on a parchment plaque. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, transparent calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(to right,  transparent calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% - 0.5px), rgba(122,90,40,.4) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  pointer-events: none;
+}
+.guidestone__quad {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  min-width: 0;
+}
+.guidestone__quad--tl { grid-area: 1 / 1; }
+.guidestone__quad--tr { grid-area: 1 / 2; }
+.guidestone__quad--bl { grid-area: 2 / 1; }
+.guidestone__quad--br { grid-area: 2 / 2; }
+
+.guidestone__input {
+  width: 5ch;
+  text-align: center;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.4rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  padding: .2rem .15rem;
+  outline: none;
+  -webkit-appearance: none;
+  letter-spacing: .04em;
+}
+.guidestone__input::placeholder { color: rgba(122, 90, 40, .35); }
+.guidestone__input:focus { border-bottom-color: var(--blood); }
+
+.guidestone__center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,250,235,.95) 0%, rgba(243,233,207,.9) 50%, rgba(212,179,92,.4) 100%);
+  border: 2px solid var(--gold-deep);
+  box-shadow:
+    inset 0 0 0 1px rgba(232,220,192,.85),
+    0 2px 6px rgba(0,0,0,.18);
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.guidestone__input--center {
+  width: 4ch;
+  font-size: 1.25rem;
+  color: var(--blood);
+  font-weight: 400;
+}
+
+/* On wider viewports lay two stones side by side. The card keeps its own
+   aspect ratio, just renders narrower. */
+@media (min-width: 560px) {
+  .guidestones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* =========================================================================
@@ -682,7 +643,7 @@ body {
   bottom: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   background:
     linear-gradient(180deg, rgba(0,0,0,.4), transparent 14%),
     linear-gradient(180deg, #1c0c0a 0%, #0a0405 100%);
@@ -1094,8 +1055,15 @@ body {
   backdrop-filter: blur(2px);
   opacity: 0;
   transition: opacity .22s ease;
+  /* Inert until explicitly opened. During the brief fade-out window between
+     `data-open=false` and DOM removal, the backdrop must not swallow clicks
+     or scroll. */
+  pointer-events: none;
 }
-.drawer-backdrop[data-open="true"] { opacity: 1; }
+.drawer-backdrop[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 /* The drawer panel sits above the tab band, sliding up from its top edge. */
 .drawer {
@@ -1123,10 +1091,13 @@ body {
   max-height: calc(100dvh - 160px - env(safe-area-inset-top, 0px));
   display: flex;
   flex-direction: column;
+  /* Inert until explicitly opened. Same reason as the backdrop above. */
+  pointer-events: none;
 }
 .drawer[data-open="true"] {
   transform: translateY(0);
   opacity: 1;
+  pointer-events: auto;
 }
 
 .drawer__rail {
@@ -1322,53 +1293,38 @@ body {
   font-weight: 400;
 }
 
-/* Session sheet — formulario de "Hoja de juego" dentro del drawer */
-.sessionf {
+/* =========================================================================
+   Hoja de juego — the full-page sheet of inter-session state
+   ========================================================================= */
+
+.gamesheet {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
-  padding-bottom: 1rem;
 }
-.sessionf__group {
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-}
-.sessionf__group-title {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .7rem;
-  letter-spacing: .16em;
-  text-transform: lowercase;
-  color: var(--ash);
-  margin: .35rem 0 .15rem;
-  border-bottom: 1px dashed rgba(122,90,40,.35);
-  padding-bottom: .25rem;
-}
-.sessionf__pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .55rem;
-}
-.sessionf__field {
+
+.gamesheet__title { margin-top: .1rem; }
+
+/* --- Generic field / label / input ----------------------------------- */
+.gamesheet__field {
   display: flex;
   flex-direction: column;
   gap: .2rem;
   min-width: 0;
 }
-.sessionf__field--block { grid-column: 1 / -1; }
-.sessionf__label {
+.gamesheet__field--block { grid-column: 1 / -1; }
+.gamesheet__label {
   font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .62rem;
   letter-spacing: .14em;
   text-transform: lowercase;
   color: var(--ash);
 }
-.sessionf__input,
-.sessionf__textarea {
+.gamesheet__input {
   font: inherit;
   font-family: 'IM Fell English Local', Georgia, serif;
   font-size: 1rem;
-  background: rgba(232,220,192,.5);
+  background: rgba(232,220,192,.55);
   border: none;
   border-bottom: 1.5px solid var(--ink-soft);
   padding: .35rem .3rem .3rem;
@@ -1379,87 +1335,349 @@ body {
   width: 100%;
   min-width: 0;
 }
-.sessionf__textarea {
-  resize: vertical;
-  min-height: 3.5rem;
-  line-height: 1.4;
-  border: 1.5px solid var(--ink-faint);
-  border-radius: 2px;
-  padding: .4rem .45rem;
-  background: rgba(232,220,192,.6);
-}
-.sessionf__input:focus { border-bottom-color: var(--blood); }
-.sessionf__textarea:focus { border-color: var(--blood); }
+.gamesheet__input:focus { border-bottom-color: var(--blood); }
 
-.sessionf__players {
+/* Stat-variant inputs sit in framed plaques: centered numerals, generous
+   tap target, slight inset shadow so they read as engraved cells. */
+.gamesheet__input--stat {
+  text-align: center;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.1rem;
+  background: linear-gradient(180deg, rgba(243,233,207,.85), rgba(212,179,92,.18));
+  border: 1px solid var(--ink-faint);
+  border-radius: 2px;
+  padding: .45rem .25rem;
+  box-shadow: inset 0 1px 2px rgba(122,90,40,.18);
+}
+.gamesheet__input--stat:focus {
+  border-color: var(--blood);
+  background: linear-gradient(180deg, rgba(243,233,207,.95), rgba(212,179,92,.28));
+}
+
+/* Location-card numbers are typically three digits. The field is free-form
+   text but the size constrains expectations and centres the tabular numerals
+   like an inscribed plaque. */
+.gamesheet__input--location {
+  width: 5.5ch;
+  min-width: 5.5ch;
+  text-align: center;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, rgba(243,233,207,.85), rgba(212,179,92,.16));
+  border: 1px solid var(--ink-faint);
+  border-radius: 2px;
+  padding: .35rem .25rem;
+  letter-spacing: .04em;
+  box-shadow: inset 0 1px 2px rgba(122,90,40,.15);
+}
+.gamesheet__input--location:focus {
+  border-color: var(--blood);
+  background: linear-gradient(180deg, rgba(243,233,207,.95), rgba(212,179,92,.28));
+}
+
+/* When a location field appears inline (next to its tag rather than under a
+   tall label), right-align it so the plaque hugs the row edge. */
+.gamesheet__field--inline {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  align-items: center;
+  gap: .55rem;
+}
+.gamesheet__field--inline .gamesheet__label {
+  margin: 0;
+}
+
+/* --- Rubric divider inside a card (Habilidades / Vitalidad / …) ----- */
+.gamesheet__rubric {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: .55rem;
+  margin: .5rem 0 .2rem;
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .2em;
+  text-transform: lowercase;
+  color: var(--blood);
+}
+.gamesheet__rubric-mark {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-deep) 70%);
+  opacity: .85;
+}
+.gamesheet__rubric-mark:last-child {
+  background: linear-gradient(90deg, var(--gold-deep) 30%, transparent);
+}
+
+/* --- Heroes section header (above the cards) ------------------------ */
+.gamesheet__heroes-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: .75rem;
+  margin: .6rem 0 .15rem;
+}
+.gamesheet__heroes-mark {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 70%);
+  opacity: .8;
+}
+.gamesheet__heroes-mark:last-child {
+  background: linear-gradient(90deg, var(--gold) 30%, transparent);
+}
+.gamesheet__heroes-title {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.2rem;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: .04em;
+}
+.gamesheet__heroes-title::first-letter { color: var(--blood); }
+
+.gamesheet__heroes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Add-hero card — a dashed-bordered placeholder that occupies a grid slot
+   beside the real heroes. When empty (no heroes selected) it expands its
+   minimum height so it feels like a proper call-to-action rather than a
+   trailing afterthought. */
+.gamesheet__add-hero {
+  appearance: none;
+  -webkit-appearance: none;
+  background:
+    repeating-linear-gradient(135deg, rgba(168,133,63,.04) 0 6px, transparent 6px 14px),
+    rgba(232,220,192,.18);
+  border: 1.5px dashed rgba(168,133,63,.55);
+  border-radius: 4px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 1.4rem 1rem;
+  min-height: 96px;
   display: flex;
   flex-direction: column;
-  gap: .35rem;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  font: inherit;
+  text-align: center;
+  transition: color .15s, border-color .15s, background .15s, transform .08s;
 }
-.sessionf__player {
+.gamesheet__add-hero:hover {
+  color: var(--blood);
+  border-color: var(--blood);
+  background:
+    repeating-linear-gradient(135deg, rgba(122,26,23,.04) 0 6px, transparent 6px 14px),
+    rgba(232,220,192,.28);
+}
+.gamesheet__add-hero:active { transform: translateY(1px); }
+.gamesheet__add-hero[data-empty="true"] { min-height: 168px; }
+.gamesheet__add-hero-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 1.25rem;
+}
+.gamesheet__add-hero-mark svg {
+  width: 1em;
+  height: 1em;
+  display: block;
+}
+.gamesheet__add-hero-label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .72rem;
+  letter-spacing: .18em;
+  text-transform: lowercase;
+  color: inherit;
+}
+
+/* Hero picker — modal grid of available heroes, each a sigil + name card */
+.prompt__card--picker {
+  max-width: 460px;
+}
+.hero-picker {
+  list-style: none;
+  padding: 0;
+  margin: .35rem 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .55rem;
+}
+.hero-picker__btn {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(212,179,92,.18), transparent 50%),
+    linear-gradient(180deg, rgba(243,233,207,.7), rgba(232,220,192,.5));
   border: 1px solid var(--ink-faint);
-  border-radius: 3px;
-  background: rgba(232,220,192,.3);
-  padding: 0 .65rem;
+  border-radius: 4px;
+  padding: .85rem .6rem;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  transition: color .14s, border-color .14s, background .14s, transform .08s;
 }
-.sessionf__player[open] { background: rgba(232,220,192,.55); }
-.sessionf__summary {
+.hero-picker__btn:hover {
+  color: var(--blood);
+  border-color: var(--blood);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(212,179,92,.28), transparent 50%),
+    linear-gradient(180deg, rgba(243,233,207,.85), rgba(232,220,192,.65));
+}
+.hero-picker__btn:active { transform: translateY(1px); }
+.hero-picker__btn .gamesheet__sigil {
+  width: 40px;
+  height: 40px;
+  color: var(--blood);
+}
+.hero-picker__btn .gamesheet__sigil svg {
+  width: 38px;
+  height: 38px;
+}
+.hero-picker__name {
   font-family: 'IM Fell English Local', Georgia, serif;
   font-size: 1.05rem;
-  color: var(--ink);
-  padding: .55rem 0;
-  cursor: pointer;
-  list-style: none;
-  display: flex;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.hero-picker__name::first-letter {
+  color: var(--blood);
+  font-size: 1.15em;
+}
+
+/* --- Player card ---------------------------------------------------- */
+.gamesheet__player {
+  position: relative;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(212,179,92,.14), transparent 45%),
+    linear-gradient(180deg, rgba(243,233,207,.62), rgba(232,220,192,.48));
+  border: 1px solid var(--ink-faint);
+  border-radius: 4px;
+  padding: .25rem .9rem 1rem;
+  box-shadow:
+    inset 0 0 0 1px rgba(232,220,192,.55),
+    0 1px 0 rgba(0,0,0,.05);
+}
+.gamesheet__player::before {
+  content: "";
+  position: absolute;
+  top: -1px; left: 12%; right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  opacity: .75;
+}
+.gamesheet__player-head {
+  display: grid;
+  grid-template-columns: 34px auto 1fr auto;
   align-items: center;
-  gap: .45rem;
+  gap: .55rem;
+  padding: .75rem 0 .55rem;
+  border-bottom: 1px dashed rgba(122,90,40,.35);
+  margin-bottom: .55rem;
 }
-.sessionf__summary::-webkit-details-marker { display: none; }
-.sessionf__summary-mark {
-  display: inline-block;
-  color: var(--gold-deep);
-  font-size: .9rem;
-  transition: transform .15s;
-  width: 1ch;
+.gamesheet__player-remove {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 2px;
+  padding: 0;
+  transition: color .14s, border-color .14s, background .14s;
 }
-.sessionf__player[open] .sessionf__summary-mark { transform: rotate(90deg); }
-.sessionf__player-body {
+.gamesheet__player-remove:hover {
+  color: var(--blood);
+  border-color: rgba(122,26,23,.35);
+  background: rgba(122,26,23,.06);
+}
+.gamesheet__player-remove svg { width: .75em; height: .75em; display: block; }
+.gamesheet__sigil {
+  width: 32px;
+  height: 32px;
+  display: grid; place-items: center;
+  color: var(--blood);
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.18));
+}
+.gamesheet__sigil svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+.gamesheet__player-name {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.35rem;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.gamesheet__player-name::first-letter {
+  color: var(--blood);
+  font-size: 1.2em;
+  letter-spacing: 0;
+}
+.gamesheet__player-rule {
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-deep) 0%, transparent 90%);
+  opacity: .7;
+}
+
+.gamesheet__player-body {
   display: flex;
   flex-direction: column;
   gap: .55rem;
-  padding: 0 0 .8rem;
 }
-/* Generic stat-grid for habilidades / vitalidad / recursos.
-   Modifier picks the column count; cells wrap to a 2-col layout on
-   narrow viewports so long labels (Espiritualidad…) keep room to breathe. */
-.sessionf__stats {
+
+/* Stat grids inside player cards */
+.gamesheet__stats {
   display: grid;
-  gap: .4rem;
+  gap: .45rem;
 }
-.sessionf__stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.sessionf__stats--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.gamesheet__stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gamesheet__stats--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 380px) {
-  .sessionf__stats--3,
-  .sessionf__stats--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gamesheet__stats--3,
+  .gamesheet__stats--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-.sessionf__stat {
+.gamesheet__stat {
   display: flex;
   flex-direction: column;
-  gap: .15rem;
+  gap: .2rem;
   min-width: 0;
-}
-.sessionf__stat .sessionf__label {
-  font-size: .58rem;
-  line-height: 1.15;
-}
-.sessionf__stat .sessionf__input {
+  align-items: stretch;
   text-align: center;
-  font-size: 1rem;
-  padding: .3rem .2rem .25rem;
+}
+.gamesheet__stat-label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .56rem;
+  letter-spacing: .14em;
+  line-height: 1.15;
+  text-transform: lowercase;
+  color: var(--ash);
 }
 
 /* iOS tap highlight off */
-button, [role="tab"], .menhir__mark, .quest__check, .secret, .faction__pip {
+button, [role="tab"], .ledger__check {
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1804,28 +2022,12 @@ button, [role="tab"], .menhir__mark, .quest__check, .secret, .faction__pip {
    ========================================================================= */
 
 .tab__glyph svg,
-.timetrack__glyph svg,
-.menhir__mark svg,
-.quest__check svg,
 .drawer__item-glyph svg,
-.sessionf__summary-mark svg,
 .drawer__back svg,
 .drawer__close svg,
 .iconbtn svg,
-.drawer-knob svg,
-.menhir__del svg,
-.quest__del svg,
-.faction__del svg {
+.drawer-knob svg {
   display: block;
-}
-
-/* Buttons that contain only an SVG (delete glyphs etc.) get their child
-   centred inside the tap target. */
-.menhir__del,
-.quest__del,
-.faction__del {
-  display: grid;
-  place-items: center;
 }
 
 /* Inline icon next to button text (action buttons) */
@@ -1834,11 +2036,6 @@ button, [role="tab"], .menhir__mark, .quest__check, .secret, .faction__pip {
   vertical-align: -.18em;
   margin-right: .35em;
 }
-
-/* The session-form summary chevron rotates on open */
-.sessionf__summary-mark { display: inline-flex; }
-.sessionf__summary-mark svg { transition: transform .15s; }
-.sessionf__player[open] .sessionf__summary-mark svg { transform: rotate(90deg); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
@@ -2076,4 +2273,31 @@ button, [role="tab"], .menhir__mark, .quest__check, .secret, .faction__pip {
   #toast-region {
     bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
   }
+}
+
+/* Two-column heroes layout once we have room for it. */
+@media (min-width: 720px) and (max-width: 959.98px) {
+  .gamesheet__heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gamesheet__player { padding: .25rem 1.1rem 1.1rem; }
+  .gamesheet__player-name { font-size: 1.45rem; }
+}
+
+/* Desktop — each hero card occupies a full row and the three stat groups
+   pivot into a 3-column grid so the card stays shallow vertically. The
+   Habilidades column is widest because it carries 6 stats over two rows;
+   Recursos is slightly wider than Vitalidad to fit its four-column track. */
+@media (min-width: 960px) {
+  .gamesheet__heroes { grid-template-columns: 1fr; }
+  .gamesheet__player { padding: .25rem 1.4rem 1.2rem; }
+  .gamesheet__player-name { font-size: 1.45rem; }
+  .gamesheet__player-stats {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1.3fr;
+    gap: 1.4rem;
+    align-items: start;
+  }
+  /* The stat-group's own rubric/grid stack vertically inside each column. */
+  .gamesheet__stat-group { min-width: 0; }
+  /* Stat input plaques get a bit bigger now that there's room. */
+  .gamesheet__input--stat { font-size: 1.2rem; padding: .55rem .25rem; }
 }
