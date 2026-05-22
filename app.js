@@ -761,11 +761,9 @@ const renderExploration = (doc) => {
     flourish(),
   );
 
-  // Transcurso del tiempo — visual top of the page, ledger-headed but no add.
-  scene.append(
-    renderLedgerHead({ title: 'Transcurso del tiempo' }),
-    renderTimeTrackers(doc),
-  );
+  // Transcurso del tiempo — a compact horarium: 10 chapter pips above a
+  // horizontal day-to-night band of six horæ.
+  scene.append(renderHorariumSection(doc));
 
   const quests         = doc.quests         || [];
   const sideQuests     = doc.sideQuests     || [];
@@ -908,170 +906,136 @@ const renderExploration = (doc) => {
 };
 
 /* -------------------------------------------------------------------------
-   Transcurso del tiempo — 10 trackers (uno por capítulo)
+   Transcurso del tiempo — el horarium
+
+   A compact horizontal sundial: day arcs left-to-right from a gilded sun
+   through six horæ into a darkening moon. The 10 chapters live on a thin
+   strip above, each chapter a single pip with its own state mark.
    ------------------------------------------------------------------------- */
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 const TIME_WHEEL_SEGMENTS = 6;
-const TIME_WHEEL_DEG = 360 / TIME_WHEEL_SEGMENTS; // 60° per wedge
+const CHAPTER_COUNT = 10;
 
-const renderTimeTracker = (chapter, count, opts = {}) => {
-  const r = 40;
-  const wedgePaths = svgEl('g', { class: 'time-tracker__wedges' });
-  const labels     = svgEl('g', { class: 'time-tracker__labels' });
-
-  for (let i = 0; i < TIME_WHEEL_SEGMENTS; i++) {
-    const startA = (i * TIME_WHEEL_DEG) * Math.PI / 180;
-    const endA   = ((i + 1) * TIME_WHEEL_DEG) * Math.PI / 180;
-    const x1 = (50 + r * Math.sin(startA)).toFixed(2);
-    const y1 = (50 - r * Math.cos(startA)).toFixed(2);
-    const x2 = (50 + r * Math.sin(endA)).toFixed(2);
-    const y2 = (50 - r * Math.cos(endA)).toFixed(2);
-    const isFilled = i < count;
-    wedgePaths.append(svgEl('path', {
-      d: `M 50 50 L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`,
-      fill: isFilled ? 'var(--ink)' : 'var(--vellum-hi)',
-      stroke: 'var(--ink-soft)',
-      'stroke-width': '0.6',
-    }));
-
-    const midA = ((i + 0.5) * TIME_WHEEL_DEG) * Math.PI / 180;
-    const labelR = 30;
-    const lx = (50 + labelR * Math.sin(midA)).toFixed(2);
-    const ly = (50 - labelR * Math.cos(midA)).toFixed(2);
-    labels.append(svgEl('text', {
-      x: lx,
-      y: ly,
-      'text-anchor': 'middle',
-      'dominant-baseline': 'central',
-      'font-family': 'IM Fell English Local, Georgia, serif',
-      'font-size': '11',
-      fill: isFilled ? 'var(--vellum-hi)' : 'var(--ink-soft)',
-    }, ROMAN_NUMERALS[i]));
-  }
-
-  const svg = svgEl('svg', {
-    class: 'time-tracker__circle',
-    viewBox: '0 0 100 100',
-    'aria-hidden': 'true',
-  }, wedgePaths, labels);
-
-  const full = count >= TIME_WHEEL_SEGMENTS;
-  return el('button', {
-    type: 'button',
-    class: opts.focus ? 'time-tracker time-tracker--focus' : 'time-tracker',
-    dataset: { full: full ? 'true' : 'false' },
-    'aria-label': `Transcurso del tiempo, Capítulo ${chapter + 1}, ${count} de ${TIME_WHEEL_SEGMENTS}`,
-    onclick: () => {
-      if (count >= TIME_WHEEL_SEGMENTS) return;
-      store.dispatch(makeCommand('SET_CHAPTER_TIME', {
-        chapter, from: count, to: count + 1,
-      }));
-    },
-  },
-    svg,
-    el('div', { class: 'time-tracker__caption' },
-      el('span', { class: 'time-tracker__title' }, `Capítulo ${chapter + 1}`),
-      el('span', { class: 'time-tracker__count' }, `${count}/${TIME_WHEEL_SEGMENTS}`),
-    ),
-  );
+const setChapterTime = (chapter, from, to) => {
+  const clamped = Math.max(0, Math.min(TIME_WHEEL_SEGMENTS, to));
+  if (clamped === from) return;
+  store.dispatch(makeCommand('SET_CHAPTER_TIME', { chapter, from, to: clamped }));
 };
 
-// Custom listbox-style dropdown. We render a button + menu and toggle a
-// data-open flag on the wrapper; CSS handles the visual transition and the
-// document-level handlers below close on outside-tap / Escape.
-const openChapterDropdown = (dropdown) => {
-  document.querySelectorAll('.chapter-dropdown[data-open="true"]').forEach(closeChapterDropdown);
-  dropdown.dataset.open = 'true';
-  dropdown.querySelector('.chapter-dropdown__trigger')?.setAttribute('aria-expanded', 'true');
-};
-const closeChapterDropdown = (dropdown) => {
-  dropdown.dataset.open = 'false';
-  dropdown.querySelector('.chapter-dropdown__trigger')?.setAttribute('aria-expanded', 'false');
-};
-
-document.addEventListener('click', (e) => {
-  const open = document.querySelector('.chapter-dropdown[data-open="true"]');
-  if (open && !open.contains(e.target)) closeChapterDropdown(open);
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  const open = document.querySelector('.chapter-dropdown[data-open="true"]');
-  if (open) {
-    e.preventDefault();
-    closeChapterDropdown(open);
-  }
-});
-
-const renderChapterDropdown = (selected) => {
-  const dropdown = el('div', {
-    class: 'chapter-dropdown',
-    dataset: { open: 'false' },
-  });
-
-  const trigger = el('button', {
-    type: 'button',
-    class: 'chapter-dropdown__trigger',
-    'aria-haspopup': 'listbox',
-    'aria-expanded': 'false',
-    'aria-label': 'Capítulo activo',
-    onclick: (e) => {
-      e.stopPropagation();
-      if (dropdown.dataset.open === 'true') closeChapterDropdown(dropdown);
-      else openChapterDropdown(dropdown);
-    },
-  },
-    el('span', { class: 'chapter-dropdown__label' }, `Capítulo ${selected + 1}`),
-    el('span', { class: 'chapter-dropdown__chevron' }, icon('chevronRight')),
-  );
-
-  const menu = el('ul', {
-    class: 'chapter-dropdown__menu',
-    role: 'listbox',
+const renderHorariumChapters = (selected, counts) => {
+  const strip = el('div', {
+    class: 'horarium__chapters',
+    role: 'tablist',
     'aria-label': 'Elegir capítulo',
   });
-  for (let i = 0; i < 10; i++) {
+
+  for (let i = 0; i < CHAPTER_COUNT; i++) {
+    const count = counts[i] || 0;
     const isSelected = i === selected;
-    menu.append(
-      el('li', {
-        class: 'chapter-dropdown__option',
-        role: 'option',
-        'aria-selected': isSelected ? 'true' : 'false',
-        onclick: () => {
-          if (i === selected) {
-            closeChapterDropdown(dropdown);
-            return;
-          }
-          // The render that follows will replace this dropdown DOM with a
-          // fresh one in the closed state, so no explicit close needed.
-          store.dispatch(makeCommand('SET_SELECTED_CHAPTER', {
-            from: selected, to: i,
-          }));
-        },
+    const isComplete = count >= TIME_WHEEL_SEGMENTS;
+    const state = isComplete ? 'done' : count > 0 ? 'partial' : 'empty';
+
+    strip.append(el('button', {
+      type: 'button',
+      class: 'horarium__chapter',
+      role: 'tab',
+      'aria-selected': isSelected ? 'true' : 'false',
+      'aria-label': `Capítulo ${i + 1}, ${count} de ${TIME_WHEEL_SEGMENTS}`,
+      dataset: { selected: isSelected ? 'true' : 'false', state },
+      onclick: () => {
+        if (i === selected) return;
+        store.dispatch(makeCommand('SET_SELECTED_CHAPTER', { from: selected, to: i }));
       },
-        el('span', { class: 'chapter-dropdown__option-label' }, `Capítulo ${i + 1}`),
-        isSelected ? el('span', { class: 'chapter-dropdown__check' }, icon('check')) : null,
-      ),
-    );
+    },
+      el('span', { class: 'horarium__chapter-num' }, String(i + 1)),
+      el('span', { class: 'horarium__chapter-mark', 'aria-hidden': 'true' }),
+    ));
   }
 
-  dropdown.append(trigger, menu);
-  return dropdown;
+  return strip;
+};
+
+const renderHorariumBand = (chapter, count) => {
+  const hours = el('div', {
+    class: 'horarium__hours',
+    role: 'group',
+    'aria-label': 'Marcar las horas',
+  });
+
+  for (let i = 0; i < TIME_WHEEL_SEGMENTS; i++) {
+    const isFilled = i < count;
+    const isCurrent = isFilled && i === count - 1;
+    // Tap a filled hour to retreat to its predecessor; any other jumps the
+    // marker straight to that position. Mirrors the old wedge behaviour.
+    hours.append(el('button', {
+      type: 'button',
+      class: 'horarium__hour',
+      dataset: {
+        tier: String(i),
+        filled: isFilled ? 'true' : 'false',
+        current: isCurrent ? 'true' : 'false',
+      },
+      'aria-pressed': isFilled ? 'true' : 'false',
+      'aria-label': `Marcar ${ROMAN_NUMERALS[i]} (${i + 1} de ${TIME_WHEEL_SEGMENTS})`,
+      onclick: () => setChapterTime(chapter, count, count === i + 1 ? i : i + 1),
+    },
+      el('span', { class: 'horarium__hour-glyph' }, ROMAN_NUMERALS[i]),
+    ));
+  }
+
+  const full = count >= TIME_WHEEL_SEGMENTS;
+
+  return el('div', {
+    class: 'horarium__band',
+    dataset: { full: full ? 'true' : 'false', count: String(count) },
+    'aria-label': `Capítulo ${chapter + 1}, ${count} de ${TIME_WHEEL_SEGMENTS}`,
+  },
+    el('span', { class: 'horarium__celest horarium__celest--sun', 'aria-hidden': 'true' },
+      icon('sun')),
+    hours,
+    el('span', { class: 'horarium__celest horarium__celest--moon', 'aria-hidden': 'true' },
+      icon('moon')),
+  );
 };
 
 const renderTimeTrackers = (doc) => {
   const counts = Array.isArray(doc.chapterTime) ? doc.chapterTime : [];
-  const selected = Math.max(0, Math.min(9, doc.selectedChapter ?? 0));
+  const selected = Math.max(0, Math.min(CHAPTER_COUNT - 1, doc.selectedChapter ?? 0));
+  const count = counts[selected] || 0;
 
-  const mobile = el('div', { class: 'time-trackers__mobile' },
-    renderChapterDropdown(selected),
-    renderTimeTracker(selected, counts[selected] || 0, { focus: true }),
+  return el('div', { class: 'horarium' },
+    renderHorariumChapters(selected, counts),
+    renderHorariumBand(selected, count),
+  );
+};
+
+// The horarium gets its own ledger head — the title on the left, and the
+// active chapter's name on the right (where the add-button usually sits) so
+// the band beneath needs no caption of its own.
+const renderHorariumSection = (doc) => {
+  const counts = Array.isArray(doc.chapterTime) ? doc.chapterTime : [];
+  const selected = Math.max(0, Math.min(CHAPTER_COUNT - 1, doc.selectedChapter ?? 0));
+  const count = counts[selected] || 0;
+  const full = count >= TIME_WHEEL_SEGMENTS;
+
+  const head = el('header', { class: 'ledger__head horarium__head' },
+    el('h3', { class: 'ledger__title' }, 'Transcurso del tiempo'),
+    el('span', { class: 'ledger__rule', 'aria-hidden': 'true' }),
+    el('span', {
+      class: 'horarium__chapter-label',
+      dataset: { full: full ? 'true' : 'false' },
+      'aria-live': 'polite',
+    },
+      el('span', { class: 'horarium__chapter-label-cap' }, 'cap.'),
+      el('span', { class: 'horarium__chapter-label-num' }, String(selected + 1)),
+    ),
   );
 
-  const grid = el('div', { class: 'time-trackers' });
-  for (let i = 0; i < 10; i++) grid.append(renderTimeTracker(i, counts[i] || 0));
-
-  return el('div', { class: 'time-trackers__section' }, mobile, grid);
+  return el('section', { class: 'ledger horarium-section' },
+    head,
+    renderTimeTrackers(doc),
+  );
 };
 
 /* -------------------------------------------------------------------------
