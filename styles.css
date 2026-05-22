@@ -569,31 +569,185 @@ body {
 .sub-ledger__add svg { width: .8em; height: .8em; display: block; }
 .sub-ledger__add-label { display: inline-block; }
 
-/* Conocidas — inline-editable rows of revealed location codes. Each row is
-   just a numeric input + a delete chip, sitting on the same dashed baseline
-   used by other ledger rows for visual continuity. */
-.loc__list { margin: 0; }
-.loc__row {
-  grid-template-columns: 1fr auto;
-  padding: .3rem 0;
+/* Conocidas — a dashed ink-well that accepts whitespace-separated codes,
+   above a wrap of small parchment-plaque tags. The dashed border on the
+   input solidifies on focus, like ink welling up into the channel. */
+.loc__add {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin: .35rem 0 .15rem;
+  padding: .25rem .55rem;
+  border: 1px dashed rgba(122,90,40,.42);
+  border-radius: 2px;
+  background: transparent;
+  transition: border-color .15s ease, border-style .15s ease, background .15s ease, box-shadow .15s ease;
 }
-.loc__input {
-  width: 100%;
+.loc__add:focus-within {
+  border-color: rgba(122,26,23,.6);
+  border-style: solid;
+  background: rgba(247,232,191,.18);
+  box-shadow: inset 0 0 0 1px rgba(122,26,23,.04);
+}
+.loc__add-plus {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  line-height: 1;
+  user-select: none;
+  transition: color .15s;
+}
+.loc__add:focus-within .loc__add-plus { color: var(--blood); }
+.loc__add-input {
+  flex: 1;
+  min-width: 0;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1rem;
   background: transparent;
   border: none;
-  border-bottom: 1px dotted rgba(122,90,40,.45);
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.05rem;
+  outline: none;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
-  padding: .2rem .15rem .15rem;
-  outline: none;
+  letter-spacing: .06em;
+  padding: .2rem 0;
   -webkit-appearance: none;
-  letter-spacing: .04em;
-  line-height: 1.1;
 }
-.loc__input::placeholder { color: rgba(122, 90, 40, .3); font-style: italic; }
-.loc__input:focus { border-bottom-color: var(--blood); border-bottom-style: solid; }
+.loc__add-input::placeholder {
+  color: rgba(122,90,40,.34);
+  font-style: italic;
+  letter-spacing: .04em;
+}
+
+/* Tag cards — small parchment plaques, each a miniature sealed certificate.
+   The location code reads as the card's title, a watermarked compass rose
+   fills the lower half, and a circular × tucks into the top-right corner.
+   Cards lay out in a responsive CSS grid so every card is the same size
+   regardless of how many are revealed. */
+.loc__tags {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  gap: .55rem;
+  margin: .55rem 0 .25rem;
+}
+.loc__tag {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  aspect-ratio: 5 / 6;
+  padding: .3rem .35rem .35rem;
+  background:
+    radial-gradient(120% 90% at 50% 36%, rgba(247,232,191,.92) 0%, rgba(228,207,158,.62) 70%, rgba(228,207,158,.55) 100%);
+  border: 1px solid rgba(122,90,40,.42);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -8px 14px -10px rgba(122,90,40,.25),
+    0 1px 2px rgba(122,90,40,.14);
+  overflow: hidden;
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+.loc__tag::before {
+  /* A faint inscribed border just inside the card edge — the engraver's
+     guideline before the seal goes on. Decorative only. */
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(122,90,40,.18);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.loc__tag:hover {
+  border-color: rgba(122,90,40,.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -10px 16px -10px rgba(122,90,40,.3),
+    0 4px 7px rgba(122,90,40,.18);
+  transform: translateY(-1px);
+}
+
+.loc__tag-head {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  padding: 0 .15rem .25rem;
+  border-bottom: 1px solid rgba(122,90,40,.22);
+  position: relative;
+}
+.loc__tag-code {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: 1.18rem;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  /* Pull the numeral slightly left of dead-center to balance the corner
+     × visually — gives the card a quiet symmetry rather than a literal
+     centred one. */
+  padding-right: .9em;
+}
+.loc__tag-code::first-letter { color: var(--blood); }
+
+.loc__tag-glyph {
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  opacity: .22;
+  font-size: 2rem;
+  pointer-events: none;
+  transition: opacity .22s ease, transform .25s ease, color .22s ease;
+}
+.loc__tag:hover .loc__tag-glyph {
+  opacity: .34;
+  transform: rotate(-4deg);
+}
+
+.loc__tag-del {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(122,90,40,.5);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,250,230,.6), rgba(228,207,158,.55) 70%);
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 1px 1px rgba(122,90,40,.15);
+  z-index: 1;
+  transition: background .18s, border-color .18s, color .18s, transform .18s, box-shadow .18s;
+}
+.loc__tag-del:hover {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,236,232,.7), rgba(216,170,160,.55) 70%);
+  border-color: var(--blood);
+  color: var(--blood);
+  transform: scale(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 2px 3px rgba(122,26,23,.22);
+}
+.loc__tag-del:focus-visible {
+  outline: none;
+  border-color: var(--blood);
+  color: var(--blood);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    0 0 0 2px rgba(122,26,23,.25);
+}
+.loc__tag-del:active { transform: scale(.96); }
+.loc__tag-del svg {
+  width: .58em;
+  height: .58em;
+  display: block;
+}
 
 /* =========================================================================
    Roca Guía — a 2×2 grid of quadrant location plaques surrounding a circular

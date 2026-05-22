@@ -7,7 +7,7 @@ const VALID_TABS = new Set(['exploration', 'statuses', 'heroes']);
 // Bump when the shape of `doc` changes. Add a matching `if (v < N)` step
 // inside `migrate()` below so older persisted docs (IndexedDB) and older
 // exported tomos (JSON files) upgrade on load / import.
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 const initialState = () => ({
   doc: {
@@ -48,6 +48,26 @@ const migrate = (rawDoc) => {
     // `guideStones` storage key, so no data movement is needed here.
     if (!Array.isArray(next.locations)) next.locations = [];
     v = 2;
+  }
+  if (v < 3) {
+    // v2 → v3: backfill `locations` from any non-empty quadrant codes on
+    // existing Roca Guía cards. New behavior auto-adds a code to Conocidas
+    // when a user fills a quadrant; this sweep applies the same intent to
+    // codes already inscribed before the auto-add wiring existed.
+    if (!Array.isArray(next.locations)) next.locations = [];
+    const stones = Array.isArray(next.guideStones) ? next.guideStones : [];
+    const seen = new Set(next.locations.map((l) => (l?.location || '').trim()).filter(Boolean));
+    const added = [];
+    for (const stone of stones) {
+      for (const key of ['q1', 'q2', 'q3', 'q4']) {
+        const code = (stone?.[key] || '').trim();
+        if (!code || seen.has(code)) continue;
+        seen.add(code);
+        added.push({ id: `mig3-${code}-${added.length}`, location: code });
+      }
+    }
+    if (added.length > 0) next.locations = [...next.locations, ...added];
+    v = 3;
   }
   next.schemaVersion = CURRENT_SCHEMA_VERSION;
   return next;

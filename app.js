@@ -551,42 +551,88 @@ const renderSubLedgerHead = ({ title, addLabel, onAdd }) =>
       : null,
   );
 
-// Conocidas — inline-editable rows of revealed location codes.
-// Empty rows are valid (mirrors the empty-quadrant flow on guide stones):
-// "añadir" pushes a blank `{ id, location: '' }` and the user types into
-// the input, which dispatches UPDATE_LOCATION on blur.
-const renderKnownLocationRows = (items) => {
+// Conocidas — a bulk-add input bar that splits on whitespace, plus a
+// flex-wrap grid of parchment-plaque tags. Each token in the input
+// dispatches its own ADD_LOCATION (skipping codes already in the list),
+// so undo peels them off one at a time the same way they were typed.
+const parseLocationTokens = (raw) =>
+  String(raw || '')
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+const renderLocationAddInput = (locations) => {
+  // Submit parses, deduplicates against existing codes, and fires one
+  // ADD_LOCATION per fresh token. The input is cleared BEFORE dispatch
+  // so the focus-restore snapshot taken during the imminent re-render
+  // captures an empty value (we don't want submitted text re-appearing).
+  const submit = (input) => {
+    const raw = input.value;
+    input.value = '';
+    const tokens = parseLocationTokens(raw);
+    if (tokens.length === 0) return;
+    const existing = new Set(locations.map((l) => (l.location || '').trim()).filter(Boolean));
+    let idx = locations.length;
+    for (const t of tokens) {
+      if (existing.has(t)) continue;
+      existing.add(t);
+      store.dispatch(makeCommand('ADD_LOCATION', {
+        to: { id: newId(), location: t },
+        index: idx,
+      }));
+      idx += 1;
+    }
+  };
+
+  const input = el('input', {
+    type: 'text',
+    class: 'loc__add-input',
+    placeholder: '101  102  103…',
+    'aria-label': 'Añadir locaciones (separadas por espacio)',
+    autocomplete: 'off',
+    autocapitalize: 'none',
+    spellcheck: 'false',
+    inputmode: 'numeric',
+    dataset: { locAddInput: 'true' },
+    // onblur on the input (not the form) so tabbing out commits whatever's
+    // typed without requiring an explicit Enter.
+    onblur: (e) => submit(e.target),
+  });
+
+  return el('form', {
+    class: 'loc__add',
+    onsubmit: (e) => {
+      e.preventDefault();
+      submit(input);
+    },
+  },
+    el('span', { class: 'loc__add-plus', 'aria-hidden': 'true' }, '+'),
+    input,
+  );
+};
+
+const renderLocationTags = (items) => {
   if (items.length === 0) return null;
-  const list = el('ul', { class: 'ledger__list loc__list' });
+  const list = el('div', { class: 'loc__tags', role: 'list' });
   items.forEach((it, idx) => {
-    const value = it.location || '';
+    const code = it.location || '';
     list.append(
-      el('li', { class: 'ledger__row loc__row' },
-        el('input', {
-          type: 'text',
-          class: 'loc__input',
-          value,
-          placeholder: '101',
-          'aria-label': 'Locación conocida',
-          autocomplete: 'off',
-          autocapitalize: 'none',
-          spellcheck: 'false',
-          inputmode: 'numeric',
-          dataset: { locationField: it.id },
-          onchange: (e) => {
-            const to = e.target.value;
-            if (value === to) return;
-            store.dispatch(makeCommand('UPDATE_LOCATION', {
-              id: it.id, from: it, to: { ...it, location: to },
-            }));
-          },
-        }),
+      el('article', { class: 'loc__tag', role: 'listitem' },
+        // Title row: the location number reads as the card's heading. The ×
+        // button is positioned absolutely so the number can sit visually
+        // centered without being pushed off by the corner control.
+        el('header', { class: 'loc__tag-head' },
+          el('span', { class: 'loc__tag-code' }, code || '—'),
+        ),
+        // Centerpiece glyph — a watermarked compass rose, the same on every
+        // card. Decorative only; aria-hidden so screen readers skip it.
+        el('div', { class: 'loc__tag-glyph', 'aria-hidden': 'true' }, icon('compass')),
         el('button', {
           type: 'button',
-          class: 'ledger__row-del',
-          'aria-label': 'Borrar locación',
+          class: 'loc__tag-del',
+          'aria-label': code ? `Borrar locación ${code}` : 'Borrar locación',
           onclick: async () => {
-            const label = it.location ? `«${it.location}»` : 'esta locación';
+            const label = code ? `«${code}»` : 'esta locación';
             const ok = await askConfirm({
               title: '¿Borrar locación?',
               body: `${label} se perderá.`,
@@ -596,7 +642,7 @@ const renderKnownLocationRows = (items) => {
             store.dispatch(makeCommand('REMOVE_LOCATION', { from: it, index: idx }));
           },
         }, icon('cross')),
-      )
+      ),
     );
   });
   return list;
@@ -621,6 +667,19 @@ const renderGuideStone = (stone, indexInList) => {
         if (value === to) return;
         store.dispatch(makeCommand('SET_GUIDE_STONE_FIELD', {
           id: stone.id, field: key, from: value, to,
+        }));
+        // Any new, non-empty quadrant code is also a "revealed" location —
+        // surface it in Conocidas automatically. Skip if it's already
+        // tracked (case-trimmed match). Stays a separate command so undo
+        // can peel the auto-added tag back independently.
+        const trimmed = (to || '').trim();
+        if (!trimmed) return;
+        const locations = store.state.doc.locations || [];
+        const exists = locations.some((l) => (l.location || '').trim() === trimmed);
+        if (exists) return;
+        store.dispatch(makeCommand('ADD_LOCATION', {
+          to: { id: newId(), location: trimmed },
+          index: locations.length,
         }));
       },
     });
@@ -666,17 +725,14 @@ const renderLocationsSection = (locations, stones) => {
 
   const group = el('div', { class: 'ledger__group' });
 
-  // Sub-block 1 — Conocidas
-  group.append(renderSubLedgerHead({
-    title: 'Conocidas',
-    addLabel: 'añadir',
-    onAdd: () => {
-      const it = { id: newId(), location: '' };
-      store.dispatch(makeCommand('ADD_LOCATION', { to: it, index: locations.length }));
-    },
-  }));
-  const rows = renderKnownLocationRows(locations);
-  if (rows) group.append(rows);
+  // Sub-block 1 — Conocidas. Head carries no add button; the input bar
+  // below is the entry point (it accepts whitespace-separated codes).
+  group.append(
+    renderSubLedgerHead({ title: 'Conocidas' }),
+    renderLocationAddInput(locations),
+  );
+  const tags = renderLocationTags(locations);
+  if (tags) group.append(tags);
 
   // Sub-block 2 — Roca Guía
   group.append(renderSubLedgerHead({
@@ -1366,6 +1422,10 @@ const formatLogEntry = (cmd, doc) => {
     case 'ADD_PERDITION_KING':   return `Rey de la Perdición inscrito: «${(p.to?.text || '').slice(0, 40)}»`;
     case 'REMOVE_PERDITION_KING':return `Rey de la Perdición borrado: «${(p.from?.text || '').slice(0, 40)}»`;
     case 'UPDATE_PERDITION_KING':return `Rey de la Perdición editado: «${(p.to?.text || '').slice(0, 40)}»`;
+    case 'ADD_LOCATION':         return `Locación revelada: «${p.to?.location || '∅'}»`;
+    case 'REMOVE_LOCATION':      return `Locación olvidada: «${p.from?.location || '∅'}»`;
+    case 'UPDATE_LOCATION':
+      return `Locación corregida: «${p.from?.location || '∅'}» → «${p.to?.location || '∅'}»`;
     case 'ADD_GUIDE_STONE':      return `Roca Guía inscrita`;
     case 'REMOVE_GUIDE_STONE':   return `Roca Guía borrada`;
     case 'SET_GUIDE_STONE_FIELD':
@@ -1928,8 +1988,11 @@ const captureFocus = () => {
   if (a.dataset?.guideStoneField) {
     return { kind: 'guidestone-field', key: a.dataset.guideStoneField, sel: a.selectionStart ?? null };
   }
-  if (a.dataset?.locationField) {
-    return { kind: 'location-field', key: a.dataset.locationField, sel: a.selectionStart ?? null };
+  if (a.dataset?.locAddInput) {
+    // The add-input is a transient buffer for typed-but-unsubmitted text,
+    // so capture its value too — otherwise an external re-render mid-type
+    // would silently wipe what the user was about to enter.
+    return { kind: 'loc-add-input', value: a.value, sel: a.selectionStart ?? null };
   }
   return null;
 };
@@ -1950,8 +2013,15 @@ const restoreFocus = (snap) => {
     focusBy(`[data-session-path="${CSS.escape(snap.path)}"]`, snap.sel);
   } else if (snap.kind === 'guidestone-field') {
     focusBy(`[data-guide-stone-field="${CSS.escape(snap.key)}"]`, snap.sel);
-  } else if (snap.kind === 'location-field') {
-    focusBy(`[data-location-field="${CSS.escape(snap.key)}"]`, snap.sel);
+  } else if (snap.kind === 'loc-add-input') {
+    const input = document.querySelector('[data-loc-add-input]');
+    if (input) {
+      input.value = snap.value || '';
+      input.focus({ preventScroll: true });
+      if (snap.sel != null) {
+        try { input.setSelectionRange(snap.sel, snap.sel); } catch {}
+      }
+    }
   }
 };
 
