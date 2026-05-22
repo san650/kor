@@ -1104,9 +1104,13 @@ const renderStatuses = (doc) => {
         el('span', { class: 'alpha__rule' }),
       ),
     );
+    // Two-column grid keeps the alphabetical list compact. Items flow
+    // row-by-row so adjacent reading stays alphabetical.
+    const grid = el('div', { class: 'alpha__items' });
     for (const s of items) {
-      scene.append(renderStatusRow(s, active[s.id] ?? []));
+      grid.append(renderStatusRow(s, active[s.id] ?? []));
     }
+    scene.append(grid);
   }
 
   return scene;
