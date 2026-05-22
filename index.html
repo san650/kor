@@ -40,39 +40,13 @@
   <div class="vellum" aria-hidden="true"></div>
 
   <header class="tome-head">
-    <div class="tome-head__crest" aria-hidden="true">
-      <svg viewBox="0 0 64 64" width="40" height="40">
-        <defs>
-          <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stop-color="#d8b765"/>
-            <stop offset="1" stop-color="#7a5a23"/>
-          </linearGradient>
-        </defs>
-        <g fill="none" stroke="url(#gold)" stroke-width="1.4" stroke-linecap="round">
-          <circle cx="32" cy="32" r="22"/>
-          <circle cx="32" cy="32" r="15" opacity=".7"/>
-          <path d="M32 10v44M10 32h44M16 16l32 32M48 16L16 48" opacity=".55"/>
-          <circle cx="32" cy="32" r="3.2" fill="#7a1a17" stroke="#d8b765"/>
-        </g>
-      </svg>
-    </div>
-    <div class="tome-head__title">
-      <h1>KOR Companion</h1>
-    </div>
-    <div class="tome-head__actions">
-      <button id="undo" class="iconbtn" type="button" aria-label="Deshacer" title="Deshacer (Ctrl/⌘Z)">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-          <path d="M8 5 3 10l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M3 10h10a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <button id="redo" class="iconbtn" type="button" aria-label="Rehacer" title="Rehacer (Ctrl/⌘⇧Z)">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-          <path d="m16 5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M21 10H11a6 6 0 0 0 0 12h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-      </button>
-    </div>
+    <span class="tome-head__rule tome-head__rule--top" aria-hidden="true"></span>
+    <h1 class="tome-head__title">
+      <span class="tome-head__word tome-head__word--kor">KOR</span>
+      <span class="tome-head__pip" aria-hidden="true"></span>
+      <span class="tome-head__word tome-head__word--companion">Companion</span>
+    </h1>
+    <span class="tome-head__rule tome-head__rule--bot" aria-hidden="true"></span>
   </header>
 
   <main id="view" class="tome"></main>

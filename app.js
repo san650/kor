@@ -1546,6 +1546,37 @@ const importDocFromFile = () => {
 };
 
 const renderDrawerMenu = () => {
+  const wrap = el('div', { class: 'drawer__menu' });
+
+  // Undo / redo — a single rune-bar at the top of the menu. The pair sits
+  // side by side because the actions are inverse: rolling time back and
+  // letting it forward. Disabled when the history has nothing on that side.
+  const canUndo = store.canUndo();
+  const canRedo = store.canRedo();
+  const actions = el('div', { class: 'drawer__actions', role: 'group', 'aria-label': 'Cronología' },
+    el('button', {
+      type: 'button',
+      class: 'drawer__action',
+      disabled: !canUndo,
+      'aria-label': 'Deshacer',
+      onclick: () => { undoWithToast(); },
+    },
+      el('span', { class: 'drawer__action-glyph' }, icon('undo')),
+      el('span', { class: 'drawer__action-label' }, 'Deshacer'),
+    ),
+    el('span', { class: 'drawer__actions-sep', 'aria-hidden': 'true' }),
+    el('button', {
+      type: 'button',
+      class: 'drawer__action',
+      disabled: !canRedo,
+      'aria-label': 'Rehacer',
+      onclick: () => { redoWithToast(); },
+    },
+      el('span', { class: 'drawer__action-glyph' }, icon('redo')),
+      el('span', { class: 'drawer__action-label' }, 'Rehacer'),
+    ),
+  );
+
   const list = el('ul', { class: 'drawer__items' });
   list.append(
     el('li', {},
@@ -1613,7 +1644,9 @@ const renderDrawerMenu = () => {
       ),
     ),
   );
-  return list;
+
+  wrap.append(actions, list);
+  return wrap;
 };
 
 /* -------------------------------------------------------------------------
@@ -1935,8 +1968,6 @@ window.addEventListener('keydown', (e) => {
    ------------------------------------------------------------------------- */
 
 const view = $('view');
-const undoBtn = $('undo');
-const redoBtn = $('redo');
 
 const setTabs = (tab) => {
   for (const btn of document.querySelectorAll('.tab')) {
@@ -2001,9 +2032,9 @@ const render = () => {
   if (doc.tab === 'heroes')           view.append(renderHeroes());
   else if (doc.tab === 'exploration') view.append(renderExploration(doc));
   else                                view.append(renderStatuses(doc));
-  undoBtn.disabled = !store.canUndo();
-  redoBtn.disabled = !store.canRedo();
-  if (drawerOpen && drawerMode === 'log') renderDrawerBody();
+  // The undo/redo controls live in the drawer now; if it's open, rerender
+  // so disabled-states and the action items stay in sync with the store.
+  if (drawerOpen) renderDrawerBody();
   restoreFocus(snap);
 };
 
@@ -2069,9 +2100,6 @@ const redoWithToast = () => {
   store.redo();
   showToast('redo', formatLogEntry(cmd, store.state.doc));
 };
-
-undoBtn.addEventListener('click', undoWithToast);
-redoBtn.addEventListener('click', redoWithToast);
 
 const isEditableTarget = (e) => {
   const t = e.target;

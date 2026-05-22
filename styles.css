@@ -85,71 +85,124 @@ body {
    Tome head — the gilded crown of the book
    ========================================================================= */
 
+/* The frontispiece — a pure typographic title plate. No crest, no
+   subtitle, no utility chrome. Two candle-thin gilt rules frame the
+   wordmark like the top and bottom of a printer's title page. */
 .tome-head {
   position: relative;
   z-index: 2;
   width: var(--col);
   margin: 0 auto .65rem;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: .75rem;
-  padding: .35rem 0 .9rem;
-  border-bottom: 1px solid rgba(168,133,63,.35);
-}
-.tome-head::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 -1px 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
-  opacity: .55;
-}
-.tome-head__crest {
-  width: 40px; height: 40px;
-  display: grid; place-items: center;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
-}
-.tome-head__title h1 {
-  font-family: 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
-  font-weight: 400;
-  font-size: 1.55rem;
-  margin: 0;
-  color: var(--vellum-hi);
-  letter-spacing: .01em;
-  text-shadow: 0 1px 0 rgba(0,0,0,.6), 0 0 14px rgba(168,40,31,.18);
-}
-.tome-head__sub {
-  margin: 0;
-  font-family: 'IM Fell DW Pica SC Local', 'IM Fell English Local', Georgia, serif;
-  font-size: .72rem;
-  letter-spacing: .14em;
-  color: var(--gold);
-  text-transform: lowercase;
-}
-.tome-head__actions {
+  padding: .15rem 0 .25rem;
   display: flex;
-  gap: .35rem;
+  flex-direction: column;
+  align-items: center;
+  gap: .55rem;
 }
 
-.iconbtn {
-  width: 40px;
-  min-height: 40px;
-  height: 40px;
-  display: grid; place-items: center;
-  background: transparent;
-  border: 1px solid rgba(168,133,63,.35);
-  color: var(--vellum-lo);
-  border-radius: var(--rad);
-  cursor: pointer;
-  transition: color .15s, border-color .15s, background .15s, transform .1s;
+/* The rules — fine gilt lines that brighten toward the centre and fade
+   into the leather at the edges. A faint vellum kiss in the middle gives
+   the title plate its frontispiece authority. */
+.tome-head__rule {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(168, 133, 63, .25) 12%,
+    rgba(216, 183, 101, .85) 50%,
+    rgba(168, 133, 63, .25) 88%,
+    transparent);
+  position: relative;
 }
-.iconbtn:hover { color: var(--gold-bright); border-color: var(--gold); }
-.iconbtn:active { transform: translateY(1px); }
-.iconbtn[disabled] {
-  color: rgba(168,133,63,.25);
-  border-color: rgba(168,133,63,.12);
-  cursor: not-allowed;
+/* A tiny gilt diamond rides each rule at its centre — the "ornament"
+   that marks a finished line. CSS-drawn so no emoji-prone codepoints. */
+.tome-head__rule::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold-deep));
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow:
+    0 0 6px rgba(216, 183, 101, .45),
+    0 0 1px rgba(0, 0, 0, .6);
+}
+.tome-head__rule--top { animation: tome-rule-in .7s ease-out 0ms both; }
+.tome-head__rule--bot { animation: tome-rule-in .7s ease-out 480ms both; }
+@keyframes tome-rule-in {
+  from { transform: scaleX(.3); opacity: 0; }
+  to   { transform: scaleX(1);  opacity: 1; }
+}
+
+/* The wordmark — set hot, on a single line, framed by the gilt rules. */
+.tome-head__title {
+  margin: 0;
+  font-family: 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.55rem, 6.6vw, 1.95rem);
+  line-height: 1;
+  letter-spacing: .02em;
+  color: var(--vellum-hi);
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, .7),
+    0 0 14px rgba(168, 40, 31, .22);
+  display: inline-flex;
+  align-items: baseline;
+  gap: .45em;
+  white-space: nowrap;
+  animation: tome-title-in 1s cubic-bezier(.2, .6, .2, 1) 180ms both;
+}
+@keyframes tome-title-in {
+  from { opacity: 0; transform: translateY(2px); letter-spacing: .14em; }
+  to   { opacity: 1; transform: none;            letter-spacing: .02em; }
+}
+
+/* "KOR" — the headword. Spaced out a touch, the first letter pulled
+   forward in gilt like an illuminated capital. */
+.tome-head__word--kor {
+  letter-spacing: .12em;
+  /* the trailing space inside .12em letter-spacing pushes the visual
+     centre right; compensate with a tiny negative margin-right */
+  margin-right: -.06em;
+}
+.tome-head__word--kor::first-letter {
+  color: var(--gold-bright);
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, .65),
+    0 0 20px rgba(216, 183, 101, .6),
+    0 0 6px rgba(168, 40, 31, .4);
+}
+
+/* "Companion" — italic, gilt, a touch smaller than the headword. The
+   pairing reads like Title · subtitle on a finely-set frontispiece. */
+.tome-head__word--companion {
+  font-style: italic;
+  font-size: .9em;
+  color: var(--gold-bright);
+  opacity: .92;
+  letter-spacing: .015em;
+}
+
+/* The pilcrow — a tiny gilt lozenge between headword and adjective,
+   rotated 45° from a gold gradient square. Same CSS-only ornament idiom
+   used elsewhere so we stay safe from iOS Safari's emoji rewrite. */
+.tome-head__pip {
+  display: inline-block;
+  width: .32em;
+  height: .32em;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold-deep));
+  transform: rotate(45deg) translateY(-.3em);
+  box-shadow: 0 0 6px rgba(216, 183, 101, .4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tome-head__rule--top,
+  .tome-head__rule--bot,
+  .tome-head__title { animation: none; }
 }
 
 /* =========================================================================
@@ -1547,10 +1600,86 @@ body {
   min-height: 0;
 }
 
+.drawer__menu {
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+}
+
+/* Time-arrows — undo / redo. Two glyph-buttons separated by a candle-thin
+   gilt rule. Together they read as a single bar of agency over history. */
+.drawer__actions {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: stretch;
+  margin: .25rem 0 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(122, 90, 40, .14), transparent 65%),
+    linear-gradient(180deg, rgba(232, 220, 192, .42), rgba(212, 179, 92, .08));
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.drawer__actions-sep {
+  display: block;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(122, 90, 40, .5) 18%,
+    rgba(122, 90, 40, .5) 82%,
+    transparent);
+}
+.drawer__action {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  padding: .6rem .5rem;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  color: var(--ink);
+  transition: background .15s, color .15s, transform .08s;
+}
+.drawer__action:hover:not(:disabled) {
+  background: rgba(122, 26, 23, .07);
+  color: var(--blood);
+}
+.drawer__action:active:not(:disabled) { transform: translateY(1px); }
+.drawer__action:disabled {
+  color: var(--ink-faint);
+  opacity: .55;
+  cursor: not-allowed;
+}
+.drawer__action-glyph {
+  display: inline-flex;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--gold-deep);
+}
+.drawer__action-glyph svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  display: block;
+}
+.drawer__action:hover:not(:disabled) .drawer__action-glyph { color: var(--blood); }
+.drawer__action:disabled .drawer__action-glyph {
+  color: var(--ink-faint);
+  opacity: .65;
+}
+.drawer__action-label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: lowercase;
+}
+
 .drawer__items {
   list-style: none;
   padding: 0;
-  margin: .25rem 0 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: .5rem;
@@ -2685,7 +2814,6 @@ button, [role="tab"], .ledger__check {
 .drawer__item-glyph svg,
 .drawer__back svg,
 .drawer__close svg,
-.iconbtn svg,
 .drawer-knob svg {
   display: block;
 }

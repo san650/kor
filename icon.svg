@@ -4,20 +4,111 @@
       <stop offset="0" stop-color="#2a1410"/>
       <stop offset="1" stop-color="#15090a"/>
     </linearGradient>
-    <linearGradient id="gold" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="#d4b35c"/>
-      <stop offset="1" stop-color="#7a5a23"/>
+    <linearGradient id="gold" x1=".3" y1="0" x2=".7" y2="1">
+      <stop offset="0"   stop-color="#f4dc94"/>
+      <stop offset=".45" stop-color="#d4b35c"/>
+      <stop offset="1"   stop-color="#6f5421"/>
     </linearGradient>
+    <linearGradient id="goldRim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a6a2a"/>
+      <stop offset="1" stop-color="#4a3614"/>
+    </linearGradient>
+    <radialGradient id="liquid" cx=".5" cy=".25" r=".75">
+      <stop offset="0"   stop-color="#9a1410"/>
+      <stop offset=".6"  stop-color="#3a0808"/>
+      <stop offset="1"   stop-color="#0a0405"/>
+    </radialGradient>
+    <linearGradient id="ruby" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8362b"/>
+      <stop offset="1" stop-color="#5a0e0c"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d04030"/>
+      <stop offset="1" stop-color="#6a1010"/>
+    </linearGradient>
+    <radialGradient id="halo" cx=".5" cy=".5" r=".55">
+      <stop offset="0"   stop-color="rgba(216,183,101,.28)"/>
+      <stop offset=".55" stop-color="rgba(168,40,31,.10)"/>
+      <stop offset="1"   stop-color="rgba(216,183,101,0)"/>
+    </radialGradient>
+    <radialGradient id="shine" cx=".3" cy=".25" r=".5">
+      <stop offset="0" stop-color="rgba(255,255,255,.55)"/>
+      <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
   </defs>
+
+  <!-- Leather backdrop -->
   <rect width="200" height="200" fill="url(#leather)"/>
-  <g fill="none" stroke="url(#gold)" stroke-width="3" stroke-linecap="round">
-    <circle cx="100" cy="100" r="68"/>
-    <circle cx="100" cy="100" r="48" opacity="0.6"/>
-    <path d="M100 32v136M32 100h136" opacity="0.55"/>
-    <path d="M52 52l96 96M148 52L52 148" opacity="0.4"/>
+
+  <!-- Mandorla halo -->
+  <ellipse cx="100" cy="106" rx="74" ry="92" fill="url(#halo)"/>
+
+  <!-- Chalice bowl — flared rim, deep cup -->
+  <path d="M40 59
+           L160 59
+           L154 69
+           Q152 113 100 126
+           Q48 113 46 69 Z"
+        fill="url(#gold)" stroke="url(#goldRim)" stroke-width="2.4"
+        stroke-linejoin="round"/>
+
+  <!-- Liquid (the corruption) -->
+  <path d="M53 71
+           Q100 86 147 71
+           Q145 105 100 116
+           Q55 105 53 71 Z"
+        fill="url(#liquid)"/>
+
+  <!-- Tide line — a subtle darker edge between gold and liquid -->
+  <path d="M53 71 Q100 87 147 71"
+        fill="none" stroke="#2a0606" stroke-width="1.6" opacity=".7"/>
+
+  <!-- Rim highlight -->
+  <path d="M40 59 L160 59" stroke="#f7e3a8" stroke-width="1.8" opacity=".7"/>
+
+  <!-- Three rubies set in the bowl -->
+  <g>
+    <circle cx="68"  cy="92"  r="5"   fill="url(#ruby)" stroke="#6f5421" stroke-width=".9"/>
+    <circle cx="100" cy="104" r="6.2" fill="url(#ruby)" stroke="#6f5421" stroke-width=".9"/>
+    <circle cx="132" cy="92"  r="5"   fill="url(#ruby)" stroke="#6f5421" stroke-width=".9"/>
+    <!-- Ruby highlights -->
+    <circle cx="66"  cy="89"  r="1.2" fill="rgba(255,255,255,.55)"/>
+    <circle cx="98"  cy="101" r="1.4" fill="rgba(255,255,255,.55)"/>
+    <circle cx="130" cy="89"  r="1.2" fill="rgba(255,255,255,.55)"/>
   </g>
-  <circle cx="100" cy="100" r="10" fill="#7a1a17" stroke="#d4b35c" stroke-width="2"/>
-  <text x="100" y="108" text-anchor="middle"
-        font-family="Georgia, serif" font-size="14"
-        font-weight="700" fill="#d4b35c">K</text>
+
+  <!-- Knop (stem swelling) -->
+  <ellipse cx="100" cy="144" rx="14" ry="9"
+           fill="url(#gold)" stroke="url(#goldRim)" stroke-width="1.8"/>
+  <!-- Upper stem (tapered) -->
+  <path d="M92 126 L108 126 L106 138 L94 138 Z"
+        fill="url(#gold)" stroke="url(#goldRim)" stroke-width="1.4"/>
+  <!-- Lower stem (tapered downward) -->
+  <path d="M94 153 L106 153 L104 168 L96 168 Z"
+        fill="url(#gold)" stroke="url(#goldRim)" stroke-width="1.4"/>
+
+  <!-- Foot — trumpet base -->
+  <path d="M64 188
+           Q67 172 90 168
+           L110 168
+           Q133 172 136 188
+           Q132 192 124 190
+           Q100 186 76 190
+           Q68 192 64 188 Z"
+        fill="url(#gold)" stroke="url(#goldRim)" stroke-width="2"/>
+  <!-- Foot under-rim -->
+  <path d="M68 184 Q100 181 132 184" stroke="#3a1614" stroke-width="1.2" fill="none" opacity=".55"/>
+
+  <!-- Specular highlights -->
+  <path d="M54 65 Q58 99 78 116" stroke="rgba(255,255,255,.45)" stroke-width="3"
+        fill="none" stroke-linecap="round"/>
+  <ellipse cx="92" cy="144" rx="4" ry="4.5" fill="url(#shine)"/>
+  <ellipse cx="80" cy="180" rx="4" ry="3.5" fill="url(#shine)" opacity=".75"/>
+
+  <!-- A single suspended drop of blood, mid-fall -->
+  <ellipse cx="100" cy="36" rx="5" ry="8" fill="url(#drop)"/>
+  <ellipse cx="98"  cy="32" rx="1.8" ry="2.4" fill="rgba(255,255,255,.5)"/>
+  <!-- A faint trailing thread of corruption above the drop -->
+  <path d="M100 26 Q100 18 99 12" stroke="url(#drop)" stroke-width="1.4"
+        stroke-linecap="round" fill="none" opacity=".55"/>
 </svg>
