@@ -530,10 +530,77 @@ const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') =
   return list;
 };
 
-// Roca Guía — one card per stone: 2×2 grid of quadrant locations surrounding
-// a circular center holding the stone's own location number. All five fields
-// are inline-editable; SET_GUIDE_STONE_FIELD dispatches on blur (onchange).
+// Locaciones — composite section with two sub-blocks: "Conocidas" (a list
+// of revealed location codes the players have discovered) and "Roca Guía"
+// (up to 3 cards, each a 2×2 grid of quadrant location codes). The
+// section title is just "Locaciones"; both sub-blocks live under it.
 const MAX_GUIDE_STONES = 3;
+
+// Header for a nested sub-block inside a ledger group. Mirrors
+// `renderLedgerHead` but one rank smaller (h4, thinner rule).
+const renderSubLedgerHead = ({ title, addLabel, onAdd }) =>
+  el('header', { class: 'sub-ledger__head' },
+    el('h4', { class: 'sub-ledger__title' }, title),
+    el('span', { class: 'sub-ledger__rule', 'aria-hidden': 'true' }),
+    onAdd
+      ? el('button', {
+          type: 'button',
+          class: 'sub-ledger__add',
+          onclick: onAdd,
+        }, icon('plus'), el('span', { class: 'sub-ledger__add-label' }, addLabel))
+      : null,
+  );
+
+// Conocidas — inline-editable rows of revealed location codes.
+// Empty rows are valid (mirrors the empty-quadrant flow on guide stones):
+// "añadir" pushes a blank `{ id, location: '' }` and the user types into
+// the input, which dispatches UPDATE_LOCATION on blur.
+const renderKnownLocationRows = (items) => {
+  if (items.length === 0) return null;
+  const list = el('ul', { class: 'ledger__list loc__list' });
+  items.forEach((it, idx) => {
+    const value = it.location || '';
+    list.append(
+      el('li', { class: 'ledger__row loc__row' },
+        el('input', {
+          type: 'text',
+          class: 'loc__input',
+          value,
+          placeholder: '101',
+          'aria-label': 'Locación conocida',
+          autocomplete: 'off',
+          autocapitalize: 'none',
+          spellcheck: 'false',
+          inputmode: 'numeric',
+          dataset: { locationField: it.id },
+          onchange: (e) => {
+            const to = e.target.value;
+            if (value === to) return;
+            store.dispatch(makeCommand('UPDATE_LOCATION', {
+              id: it.id, from: it, to: { ...it, location: to },
+            }));
+          },
+        }),
+        el('button', {
+          type: 'button',
+          class: 'ledger__row-del',
+          'aria-label': 'Borrar locación',
+          onclick: async () => {
+            const label = it.location ? `«${it.location}»` : 'esta locación';
+            const ok = await askConfirm({
+              title: '¿Borrar locación?',
+              body: `${label} se perderá.`,
+              confirmLabel: 'Borrar',
+            });
+            if (!ok) return;
+            store.dispatch(makeCommand('REMOVE_LOCATION', { from: it, index: idx }));
+          },
+        }, icon('cross')),
+      )
+    );
+  });
+  return list;
+};
 
 const renderGuideStone = (stone, indexInList) => {
   const field = (key) => {
@@ -594,22 +661,39 @@ const renderGuideStone = (stone, indexInList) => {
   );
 };
 
-const renderGuideStonesSection = (stones) => {
-  const canAdd = stones.length < MAX_GUIDE_STONES;
-  let body = null;
-  if (stones.length > 0) {
-    body = el('div', { class: 'guidestones' });
-    stones.forEach((s, i) => body.append(renderGuideStone(s, i)));
-  }
-  return renderLedgerSection({
+const renderLocationsSection = (locations, stones) => {
+  const canAddStone = stones.length < MAX_GUIDE_STONES;
+
+  const group = el('div', { class: 'ledger__group' });
+
+  // Sub-block 1 — Conocidas
+  group.append(renderSubLedgerHead({
+    title: 'Conocidas',
+    addLabel: 'añadir',
+    onAdd: () => {
+      const it = { id: newId(), location: '' };
+      store.dispatch(makeCommand('ADD_LOCATION', { to: it, index: locations.length }));
+    },
+  }));
+  const rows = renderKnownLocationRows(locations);
+  if (rows) group.append(rows);
+
+  // Sub-block 2 — Roca Guía
+  group.append(renderSubLedgerHead({
     title: 'Roca Guía',
-    addLabel: canAdd ? 'inscribir' : null,
-    onAdd: canAdd ? () => {
+    addLabel: canAddStone ? 'inscribir' : null,
+    onAdd: canAddStone ? () => {
       const stone = { id: newId(), q1: '', q2: '', q3: '', q4: '' };
       store.dispatch(makeCommand('ADD_GUIDE_STONE', { to: stone, index: stones.length }));
     } : null,
-    body,
-  });
+  }));
+  if (stones.length > 0) {
+    const cards = el('div', { class: 'guidestones' });
+    stones.forEach((s, i) => cards.append(renderGuideStone(s, i)));
+    group.append(cards);
+  }
+
+  return renderLedgerSection({ title: 'Locaciones', body: group });
 };
 
 const renderExploration = (doc) => {
@@ -634,6 +718,7 @@ const renderExploration = (doc) => {
   const partners       = doc.partners       || [];
   const guardians      = doc.guardians      || [];
   const perditionKings = doc.perditionKings || [];
+  const locations      = doc.locations      || [];
   const guideStones    = doc.guideStones    || [];
 
   // Every add flow uses the same dialog as edit (askEditItem) so both
@@ -761,7 +846,7 @@ const renderExploration = (doc) => {
     editTitle: 'Editar guardián',
   }));
 
-  scene.append(renderGuideStonesSection(guideStones));
+  scene.append(renderLocationsSection(locations, guideStones));
 
   return scene;
 };
@@ -1351,11 +1436,15 @@ const formatLogTime = (t) => {
 // Both calls MUST be synchronous inside the originating tap handler — iOS
 // drops the activation token after the first await.
 const exportDoc = () => {
+  const doc = store.state.doc;
   const payload = {
     app: 'kor-companion',
+    // `version` is the SW build tag (which app build wrote the file).
+    // `schemaVersion` is the data shape revision — what `migrate()` keys off.
     version: swVersion || 'unknown',
+    schemaVersion: doc.schemaVersion,
     exportedAt: new Date().toISOString(),
-    doc: store.state.doc,
+    doc,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const stamp = new Date().toISOString().slice(0, 10);
@@ -1839,6 +1928,9 @@ const captureFocus = () => {
   if (a.dataset?.guideStoneField) {
     return { kind: 'guidestone-field', key: a.dataset.guideStoneField, sel: a.selectionStart ?? null };
   }
+  if (a.dataset?.locationField) {
+    return { kind: 'location-field', key: a.dataset.locationField, sel: a.selectionStart ?? null };
+  }
   return null;
 };
 
@@ -1858,6 +1950,8 @@ const restoreFocus = (snap) => {
     focusBy(`[data-session-path="${CSS.escape(snap.path)}"]`, snap.sel);
   } else if (snap.kind === 'guidestone-field') {
     focusBy(`[data-guide-stone-field="${CSS.escape(snap.key)}"]`, snap.sel);
+  } else if (snap.kind === 'location-field') {
+    focusBy(`[data-location-field="${CSS.escape(snap.key)}"]`, snap.sel);
   }
 };
 

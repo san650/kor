@@ -4,19 +4,27 @@ import { loadState, saveState, requestPersistence } from './db.js';
 
 const VALID_TABS = new Set(['exploration', 'statuses', 'heroes']);
 
+// Bump when the shape of `doc` changes. Add a matching `if (v < N)` step
+// inside `migrate()` below so older persisted docs (IndexedDB) and older
+// exported tomos (JSON files) upgrade on load / import.
+export const CURRENT_SCHEMA_VERSION = 2;
+
 const initialState = () => ({
   doc: {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     tab: 'exploration',
     quests: [],
     sideQuests: [],
     notes: [],
-    // Shared state — previously buried in `session`. Each entry is
-    // `{ id, text, location }` except guideStones which has a special shape
-    // (center + 4 quadrants). Capped at 4 guide stones by the UI.
+    // Shared state — previously buried in `session`. Most entries are
+    // `{ id, text, location }`. Exceptions: `locations` is `{ id, location }`
+    // (just a revealed code, no description); `guideStones` is
+    // `{ id, q1, q2, q3, q4 }` (4 quadrants) and capped at 3 by the UI.
     timeTokens: [],
     partners: [],
     guardians: [],
     perditionKings: [],
+    locations: [],
     guideStones: [],
     statuses: {},
     chapterTime: Array.from({ length: 10 }, () => 0),
@@ -24,6 +32,26 @@ const initialState = () => ({
     session: defaultSession(),
   },
 });
+
+// Forward-only schema migrations. Pure & idempotent: takes a doc, returns
+// a new doc at CURRENT_SCHEMA_VERSION. Docs missing `schemaVersion` are
+// treated as v1 (the pre-versioned shape). Runs on every IndexedDB
+// hydrate AND on every JSON import, so old persisted state and old tomos
+// share one upgrade path.
+const migrate = (rawDoc) => {
+  if (!rawDoc || typeof rawDoc !== 'object') return rawDoc;
+  let v = Number.isInteger(rawDoc.schemaVersion) ? rawDoc.schemaVersion : 1;
+  const next = { ...rawDoc };
+  if (v < 2) {
+    // v1 → v2: introduce `locations` (list of revealed location codes).
+    // Roca Guía is renamed to "Locaciones" in the UI but keeps the
+    // `guideStones` storage key, so no data movement is needed here.
+    if (!Array.isArray(next.locations)) next.locations = [];
+    v = 2;
+  }
+  next.schemaVersion = CURRENT_SCHEMA_VERSION;
+  return next;
+};
 
 // Defensive shape-filler for `session`. Not a migration — just ensures the
 // object always has every field the UI assumes, with sane defaults, so old
@@ -90,7 +118,8 @@ class Store {
     const persisted = await loadState();
     if (persisted) {
       if (persisted.state) {
-        const merged = { ...initialState().doc, ...(persisted.state.doc || {}) };
+        const migrated = migrate(persisted.state.doc || {});
+        const merged = { ...initialState().doc, ...migrated };
         this.state = {
           doc: {
             ...merged,
@@ -137,7 +166,8 @@ class Store {
   // saved state from scratch. History is dropped since it doesn't belong to
   // the imported doc.
   importDoc(rawDoc) {
-    const merged = { ...initialState().doc, ...(rawDoc || {}) };
+    const migrated = migrate(rawDoc || {});
+    const merged = { ...initialState().doc, ...migrated };
     this.state = {
       doc: {
         ...merged,

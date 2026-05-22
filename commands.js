@@ -179,6 +179,7 @@ Object.assign(COMMANDS,
   listCommands('partners',       'PARTNER'),
   listCommands('guardians',      'GUARDIAN'),
   listCommands('perditionKings', 'PERDITION_KING'),
+  listCommands('locations',      'LOCATION'),
   listCommands('guideStones',    'GUIDE_STONE'),
 );
 
