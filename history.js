@@ -1,7 +1,7 @@
 import { coalesceKeyOf } from './commands.js';
 
 const COALESCE_WINDOW_MS = 700;
-const MAX_ENTRIES = 200;
+const MAX_ENTRIES = 2000;
 
 export class History {
   constructor() {

@@ -613,6 +613,10 @@ const renderLocationAddInput = (locations) => {
 
 const renderLocationTags = (items) => {
   if (items.length === 0) return null;
+
+  // Sort case insensitive
+  items = items.slice().sort((a, b) => a.location.localeCompare(b.location, "es", { sensitivity: 'base' }));
+
   const list = el('div', { class: 'loc__tags', role: 'list' });
   items.forEach((it, idx) => {
     const code = it.location || '';
@@ -1473,6 +1477,7 @@ const exportDoc = () => {
     schemaVersion: doc.schemaVersion,
     exportedAt: new Date().toISOString(),
     doc,
+    history: store.history.serialize(),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const stamp = new Date().toISOString().slice(0, 10);
@@ -1539,7 +1544,7 @@ const importDocFromFile = () => {
       confirmLabel: 'Cargar tomo',
     });
     if (!ok) return;
-    store.importDoc(doc);
+    store.importDoc(doc, payload?.history);
     closeDrawer();
   });
   input.click();

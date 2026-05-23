@@ -183,9 +183,9 @@ class Store {
 
   // Replace the entire doc from a (validated) imported object. Reuses the
   // same shape-normalization as #hydrate so an import behaves like loading a
-  // saved state from scratch. History is dropped since it doesn't belong to
-  // the imported doc.
-  importDoc(rawDoc) {
+  // saved state from scratch. The in-memory undo/redo log is wiped and
+  // replaced by whatever the imported file carried (or emptied if absent).
+  importDoc(rawDoc, rawHistory) {
     const migrated = migrate(rawDoc || {});
     const merged = { ...initialState().doc, ...migrated };
     this.state = {
@@ -197,7 +197,13 @@ class Store {
         session: ensureSession(merged.session),
       },
     };
-    this.history.clear();
+    if (rawHistory && typeof rawHistory === 'object') {
+      const past   = (rawHistory.past   || []).filter(isLiveCommand);
+      const future = (rawHistory.future || []).filter(isLiveCommand);
+      this.history.hydrate({ past, future });
+    } else {
+      this.history.clear();
+    }
     this.#persist();
     this.#notify();
   }
