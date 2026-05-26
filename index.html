@@ -124,13 +124,13 @@
   <dialog id="edit-dialog" class="prompt" aria-labelledby="edit-title">
     <form method="dialog" class="prompt__card">
       <h2 id="edit-title" class="prompt__title">Editar</h2>
-      <label class="prompt__field">
-        <span id="edit-label-text" class="prompt__label">Descripción</span>
-        <input id="edit-input-text" type="text" autocomplete="off" autocapitalize="sentences" spellcheck="false" />
-      </label>
       <label id="edit-field-loc" class="prompt__field" hidden>
         <span class="prompt__label">N.º de localización</span>
         <input id="edit-input-loc" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="numeric" placeholder="101" />
+      </label>
+      <label class="prompt__field">
+        <span id="edit-label-text" class="prompt__label">Descripción</span>
+        <input id="edit-input-text" type="text" autocomplete="off" autocapitalize="sentences" spellcheck="false" />
       </label>
       <div class="prompt__actions">
         <button type="button" class="btn btn--ghost" data-edit-cancel>Cancelar</button>

@@ -592,7 +592,6 @@ const renderLocationAddInput = (locations) => {
     autocomplete: 'off',
     autocapitalize: 'none',
     spellcheck: 'false',
-    inputmode: 'numeric',
     dataset: { locAddInput: 'true' },
     // onblur on the input (not the form) so tabbing out commits whatever's
     // typed without requiring an explicit Enter.
@@ -1053,26 +1052,32 @@ const renderStatuses = (doc) => {
   const scene = el('section', { class: 'scene' });
   const active = doc.statuses || {};
 
-  scene.append(
-    el('h2', { class: 'scene__title' }, 'Estados'),
-    el('p',  { class: 'scene__sub'   }, 'hoja de los reyes de la perdición'),
-    flourish(),
-  );
-
   // Controles: búsqueda + filtro de activos
   const controls = el('div', { class: 'status-controls' },
-    el('input', {
-      type: 'search',
-      class: 'status-search',
-      placeholder: 'Buscar estado…',
-      'aria-label': 'Buscar estado',
-      value: statusSearch,
-      autocomplete: 'off',
-      autocapitalize: 'none',
-      autocorrect: 'off',
-      spellcheck: 'false',
-      oninput: (e) => { statusSearch = e.target.value; render(); },
-    }),
+    el('div', { class: 'status-search-wrap' },
+      el('input', {
+        type: 'search',
+        class: 'status-search',
+        placeholder: 'Buscar estado…',
+        'aria-label': 'Buscar estado',
+        value: statusSearch,
+        autocomplete: 'off',
+        autocapitalize: 'none',
+        autocorrect: 'off',
+        spellcheck: 'false',
+        oninput: (e) => { statusSearch = e.target.value; render(); },
+      }),
+      statusSearch && el('button', {
+        type: 'button',
+        class: 'status-search-clear',
+        'aria-label': 'Borrar búsqueda',
+        onclick: () => {
+          statusSearch = '';
+          render();
+          document.querySelector('.status-search')?.focus({ preventScroll: true });
+        },
+      }, '×'),
+    ),
     el('button', {
       type: 'button',
       class: 'status-onlyactive',
@@ -1083,10 +1088,31 @@ const renderStatuses = (doc) => {
   );
   scene.append(controls);
 
+  // Resumen rápido: cada estado con casillas marcadas, en orden alfabético.
+  const activeStatuses = STATUSES
+    .filter((s) => (active[s.id]?.length ?? 0) > 0)
+    .sort((a, b) => stripAccents(a.name).localeCompare(stripAccents(b.name), 'es'));
+  if (activeStatuses.length > 0) {
+    const summary = el('ul', { class: 'status-summary' });
+    for (const s of activeStatuses) {
+      const filled = (active[s.id] || []).slice().sort((a, b) => a - b);
+      const value = s.unnumbered ? '•'.repeat(filled.length).split('').join(' ') : filled.join(', ');
+      summary.append(
+        el('li', { class: 'status-summary__item' },
+          el('span', { class: 'status-summary__name' }, s.name),
+          el('span', { class: 'status-summary__value' }, value),
+        ),
+      );
+    }
+    scene.append(summary);
+  }
+
   const q = stripAccents(statusSearch.trim());
   let filtered = STATUSES;
   if (q) filtered = filtered.filter((s) => stripAccents(s.name).includes(q));
-  if (statusOnlyActive) filtered = filtered.filter((s) => (active[s.id]?.length ?? 0) > 0);
+  // While searching, ignore the "activos" filter so a typed query always
+  // surfaces every matching estado.
+  else if (statusOnlyActive) filtered = filtered.filter((s) => (active[s.id]?.length ?? 0) > 0);
 
   if (filtered.length === 0) {
     scene.append(el('p', { class: 'hush' }, 'Nada se halla con esos signos.'));
@@ -1881,8 +1907,8 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
       group('Recursos', 'resources',
         cell('food',   'Comida',      'Comida'),
         cell('wealth', 'Riqueza',     'Riqueza'),
-        cell('magic',  'Magia',       'Magia'),
         cell('exp',    'Experiencia', 'Exp.'),
+        cell('magic',  'Magia',       'Magia'),
       ),
       el('div', { class: 'hero__items' }, renderHeroItemsSection(idx, characterName)),
     ),
