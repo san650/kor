@@ -77,6 +77,20 @@ const ICON_SVG = {
   upload: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16 V5"/><path d="M7 10 L12 5 L17 10"/><path d="M5 19 H19"/></svg>`,
   undo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5 L3 10 L8 15"/><path d="M3 10 H13 a6 6 0 0 1 0 12 H10"/></svg>`,
   redo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 5 L21 10 L16 15"/><path d="M21 10 H11 a6 6 0 0 0 0 12 H14"/></svg>`,
+  // Purity — a 4-pointed star inside a ring. Reuses the compass-rose shape
+  // because clean cardinal rays already read as "pure / ordered".
+  purity: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3.5 L13.2 12 L12 20.5 L10.8 12 Z" fill="currentColor" stroke="none"/><path d="M3.5 12 L12 13.2 L20.5 12 L12 10.8 Z" fill="currentColor" stroke="none" opacity=".55"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>`,
+  // Weirdness — same compass star, but with four wavy "tendril" rays
+  // sprouting between the cardinal points, so the icon reads as the
+  // purity star gone slightly off.
+  weirdness: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3.5 L13.2 12 L12 20.5 L10.8 12 Z" fill="currentColor" stroke="none"/><path d="M3.5 12 L12 13.2 L20.5 12 L12 10.8 Z" fill="currentColor" stroke="none" opacity=".55"/><path d="M6.2 6.2 Q7.3 7.8 8.4 7.6 Q9.5 7.4 10.4 8.8" opacity=".8"/><path d="M17.8 6.2 Q16.7 7.8 15.6 7.6 Q14.5 7.4 13.6 8.8" opacity=".8"/><path d="M6.2 17.8 Q7.3 16.2 8.4 16.4 Q9.5 16.6 10.4 15.2" opacity=".8"/><path d="M17.8 17.8 Q16.7 16.2 15.6 16.4 Q14.5 16.6 13.6 15.2" opacity=".8"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>`,
+  // Hourglass — a single ficha de tiempo. Repeated on the card, one per
+  // tally, so the count is countable at a glance without reading numerals.
+  sandClock: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 H17"/><path d="M7 20 H17"/><path d="M7 4 V7 L12 12 L7 17 V20"/><path d="M17 4 V7 L12 12 L17 17 V20"/><path d="M9 6 H15 L13 9 H11 Z" fill="currentColor" stroke="none"/><circle cx="12" cy="14" r=".7" fill="currentColor" stroke="none"/></svg>`,
+  // Crown — marks a location bearing a named Rey de la Perdición.
+  crown: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17 L5.5 7 L9 11 L12 5.5 L15 11 L18.5 7 L20 17 Z" fill="currentColor" stroke="currentColor"/><path d="M4 19.5 H20" stroke-width="1.4"/><circle cx="5.5" cy="6.2" r=".9" fill="currentColor" stroke="none"/><circle cx="18.5" cy="6.2" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="4.6" r="1" fill="currentColor" stroke="none"/></svg>`,
+  // Shield — marks a location bearing a named Guardián.
+  shield: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 L19 6 V12 C19 16.5 15.5 19.7 12 21 C8.5 19.7 5 16.5 5 12 V6 Z" fill="currentColor" stroke="currentColor" opacity=".18"/><path d="M12 3 L19 6 V12 C19 16.5 15.5 19.7 12 21 C8.5 19.7 5 16.5 5 12 V6 Z"/><path d="M9 11 L11.2 13 L15 9"/></svg>`,
   // Obelisk — a tapered standing-stone with bare, branching limbs sprouting
   // from its crown like a petrified tree. The asymmetry of the branches and
   // the way the stone roots into a small plinth nod to KOR's quietly weird,
@@ -240,6 +254,81 @@ const askEditItem = ({
     editInputText.select?.();
   });
 });
+
+// Location card editor — stepper for fichas + polarity toggle + named
+// guardian/king inputs. Resolves with the edited fields or null on cancel.
+const locEditDialog       = $('loc-edit-dialog');
+const locEditTitle        = $('loc-edit-title');
+const locEditForm         = locEditDialog.querySelector('form');
+const locEditFichasVal    = locEditDialog.querySelector('[data-loc-edit-fichas-val]');
+const locEditFichasDec    = locEditDialog.querySelector('[data-loc-edit-fichas-dec]');
+const locEditFichasInc    = locEditDialog.querySelector('[data-loc-edit-fichas-inc]');
+const locEditPolarityBtns = locEditDialog.querySelectorAll('[data-loc-edit-polarity]');
+const locEditInputGuardian = $('loc-edit-input-guardian');
+const locEditInputKing     = $('loc-edit-input-king');
+const locEditCancel       = locEditDialog.querySelector('[data-loc-edit-cancel]');
+
+let locEditState = { fichas: 0, polarity: 'pureza' };
+let locEditResolver = null;
+
+const settleLocEdit = (value) => {
+  if (locEditResolver) { locEditResolver(value); locEditResolver = null; }
+  if (locEditDialog.open) locEditDialog.close();
+};
+
+const refreshLocEditFichas = () => {
+  locEditFichasVal.textContent = String(locEditState.fichas);
+  locEditFichasDec.disabled = locEditState.fichas <= 0;
+};
+const refreshLocEditPolarity = () => {
+  for (const btn of locEditPolarityBtns) {
+    btn.setAttribute('aria-pressed',
+      btn.dataset.locEditPolarity === locEditState.polarity ? 'true' : 'false');
+  }
+};
+
+locEditFichasInc.addEventListener('click', () => {
+  locEditState.fichas = Math.min(99, locEditState.fichas + 1);
+  refreshLocEditFichas();
+});
+locEditFichasDec.addEventListener('click', () => {
+  locEditState.fichas = Math.max(0, locEditState.fichas - 1);
+  refreshLocEditFichas();
+});
+for (const btn of locEditPolarityBtns) {
+  btn.addEventListener('click', () => {
+    locEditState.polarity = btn.dataset.locEditPolarity;
+    refreshLocEditPolarity();
+  });
+}
+
+locEditForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  settleLocEdit({
+    fichas: locEditState.fichas,
+    polarity: locEditState.polarity,
+    guardian: locEditInputGuardian.value.trim(),
+    perditionKing: locEditInputKing.value.trim(),
+  });
+});
+locEditCancel.addEventListener('click', () => settleLocEdit(null));
+locEditDialog.addEventListener('close', () => { if (locEditResolver) settleLocEdit(null); });
+locEditDialog.onclick = (e) => { if (e.target === locEditDialog) settleLocEdit(null); };
+
+const askEditLocation = ({ code, fichas, polarity, guardian, perditionKing }) =>
+  new Promise((resolve) => {
+    locEditResolver = resolve;
+    locEditState = {
+      fichas: Number.isInteger(fichas) ? Math.max(0, fichas) : 0,
+      polarity: polarity === 'rareza' ? 'rareza' : 'pureza',
+    };
+    locEditTitle.textContent = code ? `Locación ${code}` : 'Editar locación';
+    locEditInputGuardian.value = guardian || '';
+    locEditInputKing.value = perditionKing || '';
+    refreshLocEditFichas();
+    refreshLocEditPolarity();
+    locEditDialog.showModal();
+  });
 
 const heroPickerDialog = $('hero-picker-dialog');
 const heroPickerList   = $('hero-picker-list');
@@ -486,7 +575,7 @@ const renderQuestRows = (quests) => {
 };
 
 // Shared state row — text on the left, optional location plaque, delete chip.
-// Used by the four text+location sections (Fichas, Compañeros, Rey, Guardianes).
+// Used by Compañeros and parallel text+location ledgers.
 const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') => {
   if (items.length === 0) return null;
   const list = el('ul', { class: 'ledger__list' });
@@ -619,22 +708,86 @@ const renderLocationTags = (items) => {
   const list = el('div', { class: 'loc__tags', role: 'list' });
   items.forEach((it, idx) => {
     const code = it.location || '';
+    const fichas = Math.max(0, Number.isInteger(it.fichas) ? it.fichas : 0);
+    const polarity = it.polarity === 'rareza' ? 'rareza' : 'pureza';
+    const guardian = (it.guardian || '').trim();
+    const king = (it.perditionKing || '').trim();
+
+    // Sand-clock row — one icon per ficha. Empty when the location has no
+    // tally, which keeps the bottom-of-card height stable for unmarked
+    // locations.
+    const clocks = el('div', { class: 'loc__tag-clocks', 'aria-hidden': 'true' });
+    for (let i = 0; i < fichas; i++) clocks.append(icon('sandClock'));
+
+    // Optional dweller badges (Guardián / Rey de la Perdición). Rendered as
+    // small icons with the bearer's name as a tooltip so the card stays
+    // legible at a glance.
+    const dwellers = el('div', { class: 'loc__tag-dwellers', 'aria-hidden': guardian || king ? 'false' : 'true' });
+    if (guardian) {
+      dwellers.append(el('span', {
+        class: 'loc__tag-dweller loc__tag-dweller--guardian',
+        title: `Guardián: ${guardian}`,
+      }, icon('shield')));
+    }
+    if (king) {
+      dwellers.append(el('span', {
+        class: 'loc__tag-dweller loc__tag-dweller--king',
+        title: `Rey de la Perdición: ${king}`,
+      }, icon('crown')));
+    }
+
     list.append(
-      el('article', { class: 'loc__tag', role: 'listitem' },
-        // Title row: the location number reads as the card's heading. The ×
-        // button is positioned absolutely so the number can sit visually
-        // centered without being pushed off by the corner control.
-        el('header', { class: 'loc__tag-head' },
+      el('article',
+        {
+          class: 'loc__tag',
+          role: 'listitem',
+          dataset: { polarity, fichas: String(fichas) },
+        },
+        // The card body is itself the tap target that opens the editor;
+        // the × delete button sits absolutely positioned on top.
+        el('button', {
+          type: 'button',
+          class: 'loc__tag-body',
+          'aria-label': code ? `Editar locación ${code}` : 'Editar locación',
+          onclick: async () => {
+            const result = await askEditLocation({
+              code,
+              fichas,
+              polarity,
+              guardian,
+              perditionKing: king,
+            });
+            if (!result) return;
+            const to = {
+              ...it,
+              fichas: result.fichas,
+              polarity: result.polarity,
+              guardian: result.guardian || '',
+              perditionKing: result.perditionKing || '',
+            };
+            // Nothing actually changed — skip the dispatch so undo history
+            // doesn't accumulate empty edits.
+            if (to.fichas === fichas
+              && to.polarity === polarity
+              && to.guardian === guardian
+              && to.perditionKing === king) return;
+            store.dispatch(makeCommand('UPDATE_LOCATION', { id: it.id, from: it, to }));
+          },
+        },
           el('span', { class: 'loc__tag-code' }, code || '—'),
+          el('span', { class: 'loc__tag-glyph' },
+            icon(polarity === 'rareza' ? 'weirdness' : 'purity'),
+          ),
+          dwellers,
+          clocks,
         ),
-        // Centerpiece glyph — a watermarked compass rose, the same on every
-        // card. Decorative only; aria-hidden so screen readers skip it.
-        el('div', { class: 'loc__tag-glyph', 'aria-hidden': 'true' }, icon('compass')),
         el('button', {
           type: 'button',
           class: 'loc__tag-del',
           'aria-label': code ? `Borrar locación ${code}` : 'Borrar locación',
-          onclick: async () => {
+          onclick: async (e) => {
+            // Stop the body's onclick from also firing the editor.
+            e.stopPropagation();
             const label = code ? `«${code}»` : 'esta locación';
             const ok = await askConfirm({
               title: '¿Borrar locación?',
@@ -768,15 +921,12 @@ const renderExploration = (doc) => {
   // horizontal day-to-night band of six horæ.
   scene.append(renderHorariumSection(doc));
 
-  const quests         = doc.quests         || [];
-  const sideQuests     = doc.sideQuests     || [];
-  const notes          = doc.notes          || [];
-  const timeTokens     = doc.timeTokens     || [];
-  const partners       = doc.partners       || [];
-  const guardians      = doc.guardians      || [];
-  const perditionKings = doc.perditionKings || [];
-  const locations      = doc.locations      || [];
-  const guideStones    = doc.guideStones    || [];
+  const quests       = sortByLocation(doc.quests   || []);
+  const sideQuests   = sortByLocation(doc.sideQuests || []);
+  const notes        = sortByLocation(doc.notes    || []);
+  const partners     = sortByLocation(doc.partners || []);
+  const locations    = doc.locations    || [];
+  const guideStones  = doc.guideStones  || [];
 
   // Every add flow uses the same dialog as edit (askEditItem) so both
   // text and the optional location are visible in a single modal.
@@ -867,43 +1017,162 @@ const renderExploration = (doc) => {
     editTitle: 'Editar compañero',
   }));
 
-  scene.append(sharedSection({
-    title: 'Fichas de Tiempo',
-    addLabel: 'añadir',
-    prefix: 'TIME_TOKEN',
-    items: timeTokens,
-    promptTitle: 'Nueva ficha de tiempo',
-    promptLabel: 'Descripción',
-    promptPlaceholder: 'Cae la noche sobre el valle',
-    removeTitle: '¿Borrar la ficha?',
-    editTitle: 'Editar ficha de tiempo',
-  }));
-
-  scene.append(sharedSection({
-    title: 'Rey de la Perdición',
-    addLabel: 'añadir',
-    prefix: 'PERDITION_KING',
-    items: perditionKings,
-    promptTitle: 'Rey de la Perdición',
-    promptLabel: 'Nombre o descripción',
-    promptPlaceholder: 'El Coronado de Espinos',
-    removeTitle: '¿Borrar al Rey?',
-    editTitle: 'Editar Rey de la Perdición',
-  }));
-
-  scene.append(sharedSection({
-    title: 'Guardianes',
-    addLabel: 'añadir',
-    prefix: 'GUARDIAN',
-    items: guardians,
-    promptTitle: 'Nuevo guardián',
-    promptLabel: 'Nombre o descripción',
-    promptPlaceholder: 'Los Centinelas de Bran',
-    removeTitle: '¿Olvidar al guardián?',
-    editTitle: 'Editar guardián',
-  }));
-
   scene.append(renderLocationsSection(locations, guideStones));
+
+  return scene;
+};
+
+/* -------------------------------------------------------------------------
+   By-location view — a per-location lens over every Andanzas ledger.
+   Pick a location at the top, see all its quests / notes / partners / etc.
+   below, and add new entries that arrive pre-filled with that location.
+   ------------------------------------------------------------------------- */
+
+let selectedLocation = null;
+
+const renderByLocation = (doc) => {
+  const scene = el('section', { class: 'scene' });
+
+  // Build the alphabetical (numeric-aware) list of known locations.
+  const locations = (doc.locations || [])
+    .slice()
+    .sort((a, b) =>
+      (a.location || '').localeCompare(b.location || '', 'es', { numeric: true, sensitivity: 'base' }),
+    );
+
+  if (locations.length === 0) {
+    scene.append(el('p', { class: 'hush' },
+      'Aún no hay locaciones registradas. Añádelas desde Andanzas → Locaciones.'));
+    return scene;
+  }
+
+  // Auto-select first (or fall back when the previously selected one was
+  // removed from the document).
+  if (!locations.some((l) => l.location === selectedLocation)) {
+    selectedLocation = locations[0].location;
+  }
+
+  // Selector chips
+  const chips = el('div', { class: 'by-loc__chips' });
+  for (const loc of locations) {
+    const isSel = loc.location === selectedLocation;
+    chips.append(el('button', {
+      type: 'button',
+      class: 'by-loc__chip',
+      'aria-pressed': isSel ? 'true' : 'false',
+      onclick: () => { selectedLocation = loc.location; render(); },
+    }, loc.location));
+  }
+  scene.append(chips);
+
+  const loc = selectedLocation;
+  const matches = (it) => (it.location || '').trim() === loc;
+
+  // Filter each ledger to items whose location matches the selection.
+  const allQuests     = doc.quests     || [];
+  const allSideQuests = doc.sideQuests || [];
+  const allNotes      = doc.notes      || [];
+  const allPartners   = doc.partners   || [];
+
+  const quests     = allQuests.filter(matches);
+  const sideQuests = allSideQuests.filter(matches);
+  const notes      = allNotes.filter(matches);
+  const partners   = allPartners.filter(matches);
+
+  // Per-section add handler that pre-fills the active location, then asks
+  // the same askEditItem modal as the Andanzas flows so behaviour stays
+  // identical (text + optional location override).
+  const sharedLocSection = ({ title, addLabel, prefix, items, allLength, promptTitle, promptLabel, promptPlaceholder, removeTitle, editTitle }) =>
+    renderLedgerSection({
+      title,
+      addLabel,
+      onAdd: async () => {
+        const result = await askEditItem({
+          title: promptTitle,
+          textLabel: promptLabel,
+          textPlaceholder: promptPlaceholder,
+          hasLocation: true,
+          locationValue: loc,
+        });
+        if (!result) return;
+        const it = { id: newId(), text: result.text, location: result.location || '' };
+        store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: allLength }));
+      },
+      body: renderTextLocRows(items, prefix, (it) => askConfirm({
+        title: removeTitle,
+        body: it.text ? `«${it.text}» se perderá.` : 'La entrada se perderá.',
+      }), editTitle),
+    });
+
+  scene.append(renderLedgerSection({
+    title: 'Misión principal',
+    addLabel: 'iniciar',
+    onAdd: async () => {
+      const result = await askEditItem({
+        title: 'Nueva misión',
+        textLabel: '¿Qué se emprende?',
+        textPlaceholder: 'Encontrar al Ermitaño del Tarn',
+        hasLocation: true,
+        locationValue: loc,
+      });
+      if (!result) return;
+      const q = { id: newId(), title: result.text, location: result.location || '', done: false };
+      store.dispatch(makeCommand('ADD_QUEST', { to: q, index: allQuests.length }));
+    },
+    body: renderQuestRows(quests),
+  }));
+
+  scene.append(renderLedgerSection({
+    title: 'Misiones secundarias',
+    addLabel: 'añadir',
+    onAdd: async () => {
+      const result = await askEditItem({
+        title: 'Nueva misión secundaria',
+        textLabel: '¿Qué encargo se acepta?',
+        textPlaceholder: 'Recuperar la espada perdida',
+        hasLocation: true,
+        locationValue: loc,
+      });
+      if (!result) return;
+      const it = { id: newId(), title: result.text, location: result.location || '', done: false };
+      store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: allSideQuests.length }));
+    },
+    body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
+      title: '¿Borrar la misión?',
+      body: `«${it.title}» será arrancada del diario.`,
+    }), 'Editar misión secundaria'),
+  }));
+
+  scene.append(renderLedgerSection({
+    title: 'Notas',
+    addLabel: 'anotar',
+    onAdd: async () => {
+      const result = await askEditItem({
+        title: 'Nueva nota',
+        textLabel: '¿Qué se quiere recordar?',
+        textPlaceholder: 'La hoguera ardió tres noches…',
+        hasLocation: true,
+        locationValue: loc,
+      });
+      if (!result) return;
+      const n = { id: newId(), text: result.text, location: result.location || '' };
+      store.dispatch(makeCommand('ADD_NOTE', { to: n, index: allNotes.length }));
+    },
+    body: renderNoteRows(notes),
+  }));
+
+  scene.append(sharedLocSection({
+    title: 'Compañeros',
+    addLabel: 'añadir',
+    prefix: 'PARTNER',
+    items: partners,
+    allLength: allPartners.length,
+    promptTitle: 'Nuevo compañero',
+    promptLabel: 'Nombre o descripción',
+    promptPlaceholder: 'Aedric el Bardo',
+    removeTitle: '¿Olvidar a este compañero?',
+    editTitle: 'Editar compañero',
+  }));
 
   return scene;
 };
@@ -1047,6 +1316,21 @@ const renderHorariumSection = (doc) => {
 
 let statusSearch = '';
 let statusOnlyActive = false;
+
+// Sort a list by `location` ascending (numeric-aware), placing items with no
+// location at the end.
+const sortByLocation = (items) => {
+  const withLoc = [];
+  const noLoc = [];
+  for (const it of items) {
+    if ((it.location || '').trim() !== '') withLoc.push(it);
+    else noLoc.push(it);
+  }
+  withLoc.sort((a, b) =>
+    (a.location || '').localeCompare(b.location || '', 'es', { numeric: true, sensitivity: 'base' }),
+  );
+  return [...withLoc, ...noLoc];
+};
 
 const renderStatuses = (doc) => {
   const scene = el('section', { class: 'scene' });
@@ -1445,8 +1729,10 @@ const formatLogEntry = (cmd, doc) => {
     case 'UPDATE_PERDITION_KING':return `Rey de la Perdición editado: «${(p.to?.text || '').slice(0, 40)}»`;
     case 'ADD_LOCATION':         return `Locación revelada: «${p.to?.location || '∅'}»`;
     case 'REMOVE_LOCATION':      return `Locación olvidada: «${p.from?.location || '∅'}»`;
-    case 'UPDATE_LOCATION':
-      return `Locación corregida: «${p.from?.location || '∅'}» → «${p.to?.location || '∅'}»`;
+    case 'UPDATE_LOCATION': {
+      const code = p.to?.location || p.from?.location || '∅';
+      return `Locación «${code}» editada`;
+    }
     case 'ADD_GUIDE_STONE':      return `Roca Guía inscrita`;
     case 'REMOVE_GUIDE_STONE':   return `Roca Guía borrada`;
     case 'SET_GUIDE_STONE_FIELD':
@@ -2085,6 +2371,7 @@ const render = () => {
   view.replaceChildren();
   if (doc.tab === 'heroes')           view.append(renderHeroes());
   else if (doc.tab === 'exploration') view.append(renderExploration(doc));
+  else if (doc.tab === 'byLocation')  view.append(renderByLocation(doc));
   else                                view.append(renderStatuses(doc));
   // The undo/redo controls live in the drawer now; if it's open, rerender
   // so disabled-states and the action items stay in sync with the store.

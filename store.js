@@ -2,12 +2,12 @@ import { COMMANDS, isNoOp, defaultSession } from './commands.js';
 import { History } from './history.js';
 import { loadState, saveState, requestPersistence } from './db.js';
 
-const VALID_TABS = new Set(['exploration', 'statuses', 'heroes']);
+const VALID_TABS = new Set(['exploration', 'byLocation', 'statuses', 'heroes']);
 
 // Bump when the shape of `doc` changes. Add a matching `if (v < N)` step
 // inside `migrate()` below so older persisted docs (IndexedDB) and older
 // exported tomos (JSON files) upgrade on load / import.
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 const initialState = () => ({
   doc: {
@@ -17,13 +17,12 @@ const initialState = () => ({
     sideQuests: [],
     notes: [],
     // Shared state — previously buried in `session`. Most entries are
-    // `{ id, text, location }`. Exceptions: `locations` is `{ id, location }`
-    // (just a revealed code, no description); `guideStones` is
-    // `{ id, q1, q2, q3, q4 }` (4 quadrants) and capped at 3 by the UI.
-    timeTokens: [],
+    // `{ id, text, location }`. Exceptions: `locations` is
+    // `{ id, location, fichas, polarity, guardian?, perditionKing? }`
+    // (a revealed code plus its tally of time-tokens, polarity, and
+    // optional named guardian / king of doom). `guideStones` is
+    // `{ id, q1, q2, q3, q4 }` (4 quadrants), capped at 3 by the UI.
     partners: [],
-    guardians: [],
-    perditionKings: [],
     locations: [],
     guideStones: [],
     statuses: {},
@@ -68,6 +67,48 @@ const migrate = (rawDoc) => {
     }
     if (added.length > 0) next.locations = [...next.locations, ...added];
     v = 3;
+  }
+  if (v < 4) {
+    // v3 → v4: location cards absorb time-token count + polarity, plus an
+    // optional named guardian / king of doom. The previous separate
+    // ledgers (`timeTokens`, `guardians`, `perditionKings`) are removed
+    // from the UI; we fold any entries that already point at a known
+    // location into that location's new fields, and drop the loose
+    // arrays. Entries that didn't reference a known location are lost
+    // here — small price for a clean shape and the user has the export
+    // file if recovery ever matters.
+    const locations = Array.isArray(next.locations) ? next.locations : [];
+    const locByCode = new Map();
+    for (const loc of locations) {
+      const code = (loc?.location || '').trim();
+      if (code) locByCode.set(code, { ...loc });
+    }
+    const claim = (entries, field) => {
+      for (const e of (Array.isArray(entries) ? entries : [])) {
+        const code = (e?.location || '').trim();
+        const name = (e?.text || '').trim();
+        if (!code || !name) continue;
+        const target = locByCode.get(code);
+        if (!target || target[field]) continue;
+        target[field] = name;
+      }
+    };
+    claim(next.guardians, 'guardian');
+    claim(next.perditionKings, 'perditionKing');
+    next.locations = locations.map((loc) => {
+      const code = (loc?.location || '').trim();
+      const merged = code ? locByCode.get(code) : loc;
+      return {
+        ...loc,
+        ...merged,
+        fichas: Number.isInteger(merged?.fichas) ? merged.fichas : 0,
+        polarity: merged?.polarity === 'rareza' ? 'rareza' : 'pureza',
+      };
+    });
+    delete next.timeTokens;
+    delete next.guardians;
+    delete next.perditionKings;
+    v = 4;
   }
   next.schemaVersion = CURRENT_SCHEMA_VERSION;
   return next;

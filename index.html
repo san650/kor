@@ -64,6 +64,15 @@
       </span>
       <span class="tab__name">Andanzas</span>
     </button>
+    <button class="tab" role="tab" data-tab="byLocation" aria-selected="false">
+      <span class="tab__glyph" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2.5 C8 2.5 5 5.5 5 9.2 C5 13.5 9.5 18.5 12 21.5 C14.5 18.5 19 13.5 19 9.2 C19 5.5 16 2.5 12 2.5 Z"/>
+          <circle cx="12" cy="9.2" r="2.4" fill="currentColor" stroke="none"/>
+        </svg>
+      </span>
+      <span class="tab__name">Locación</span>
+    </button>
     <button class="tab" role="tab" data-tab="statuses" aria-selected="false">
       <span class="tab__glyph" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
@@ -117,6 +126,39 @@
       <ul id="hero-picker-list" class="hero-picker"></ul>
       <div class="prompt__actions">
         <button type="button" class="btn btn--ghost" data-hero-picker-cancel>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="loc-edit-dialog" class="prompt" aria-labelledby="loc-edit-title">
+    <form method="dialog" class="prompt__card">
+      <h2 id="loc-edit-title" class="prompt__title">Editar locación</h2>
+      <div class="prompt__field">
+        <span class="prompt__label">Fichas de Tiempo</span>
+        <div class="stepper">
+          <button type="button" class="stepper__btn" data-loc-edit-fichas-dec aria-label="Quitar ficha">−</button>
+          <output class="stepper__value" data-loc-edit-fichas-val>0</output>
+          <button type="button" class="stepper__btn" data-loc-edit-fichas-inc aria-label="Añadir ficha">+</button>
+        </div>
+      </div>
+      <div class="prompt__field">
+        <span class="prompt__label">Polaridad</span>
+        <div class="segmented" role="radiogroup">
+          <button type="button" class="segmented__btn" data-loc-edit-polarity="pureza" aria-pressed="true">Pureza</button>
+          <button type="button" class="segmented__btn" data-loc-edit-polarity="rareza" aria-pressed="false">Rareza</button>
+        </div>
+      </div>
+      <label class="prompt__field">
+        <span class="prompt__label">Guardián</span>
+        <input id="loc-edit-input-guardian" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="—" />
+      </label>
+      <label class="prompt__field">
+        <span class="prompt__label">Rey de la Perdición</span>
+        <input id="loc-edit-input-king" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="—" />
+      </label>
+      <div class="prompt__actions">
+        <button type="button" class="btn btn--ghost" data-loc-edit-cancel>Cancelar</button>
+        <button type="submit" class="btn btn--ink" data-loc-edit-accept>Guardar</button>
       </div>
     </form>
   </dialog>
