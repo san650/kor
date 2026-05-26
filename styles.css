@@ -1261,7 +1261,7 @@ body {
   color: var(--blood);
 }
 
-/* Resumen de estados activos — vistazo rápido al tope de la sección. */
+/* Active-statuses summary — at-a-glance list at the top of the section. */
 .status-summary {
   list-style: none;
   margin: 0 0 .75rem;

@@ -1052,7 +1052,7 @@ const renderStatuses = (doc) => {
   const scene = el('section', { class: 'scene' });
   const active = doc.statuses || {};
 
-  // Controles: búsqueda + filtro de activos
+  // Controls: search box + activos toggle.
   const controls = el('div', { class: 'status-controls' },
     el('div', { class: 'status-search-wrap' },
       el('input', {
@@ -1088,7 +1088,7 @@ const renderStatuses = (doc) => {
   );
   scene.append(controls);
 
-  // Resumen rápido: cada estado con casillas marcadas, en orden alfabético.
+  // Quick summary: every status with filled pips, sorted alphabetically.
   const activeStatuses = STATUSES
     .filter((s) => (active[s.id]?.length ?? 0) > 0)
     .sort((a, b) => stripAccents(a.name).localeCompare(stripAccents(b.name), 'es'));
@@ -1234,6 +1234,29 @@ if ('serviceWorker' in navigator) {
   });
   navigator.serviceWorker.addEventListener('controllerchange', askSwVersion);
 }
+
+// Keep the screen awake while the app is open. The OS releases the wake
+// lock whenever the document is hidden (app switch, lock screen) and never
+// restores it, so we re-request on visibilitychange. iOS PWAs additionally
+// reject the first cold-launch request until there's been a user gesture,
+// so we also retry on the first pointerdown.
+let wakeLock = null;
+const acquireWakeLock = async () => {
+  if (!('wakeLock' in navigator)) return;
+  if (document.visibilityState !== 'visible') return;
+  if (wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch {
+    wakeLock = null;
+  }
+};
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') acquireWakeLock();
+});
+window.addEventListener('pointerdown', () => { acquireWakeLock(); }, { passive: true });
+acquireWakeLock();
 
 const buildBackdrop = () => el('div', {
   class: 'drawer-backdrop',
