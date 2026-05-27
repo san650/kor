@@ -2999,15 +2999,17 @@ button, [role="tab"], .ledger__check {
    ========================================================================= */
 
 @media (min-width: 960px) {
-  html, body { font-size: 18px; }
+  /* iPad Mini landscape lands here (1024px). Tighten the sidebar and
+     outer padding so the parchment gets room to breathe. */
+  html, body { font-size: 17px; }
 
   body {
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 200px minmax(0, 1fr);
     grid-template-rows: auto 1fr;
-    column-gap: 2.5rem;
-    row-gap: 1.25rem;
-    padding: 2.5rem 2.5rem 3rem;
+    column-gap: 1.5rem;
+    row-gap: 1rem;
+    padding: 1.5rem 1.5rem 2.25rem;
     max-width: 1320px;
     margin: 0 auto;
     min-height: 100dvh;
@@ -3019,23 +3021,23 @@ button, [role="tab"], .ledger__check {
   .tome-head {
     width: auto;
     margin: 0;
-    padding: 0 0 1.3rem;
+    padding: 0 0 .9rem;
     border-bottom: 1px solid rgba(168,133,63,.42);
     align-items: flex-start;
   }
   .tome-head__crest {
     grid-column: 1;
     grid-row: 1 / span 2;
-    width: 56px; height: 56px;
+    width: 44px; height: 44px;
   }
-  .tome-head__crest svg { width: 56px; height: 56px; }
+  .tome-head__crest svg { width: 44px; height: 44px; }
   .tome-head__title {
     grid-column: 2;
     grid-row: 1 / span 2;
     text-align: left;
   }
   .tome-head__title h1 {
-    font-size: 1.55rem;
+    font-size: 1.3rem;
     line-height: 1.1;
     margin: 0;
   }
@@ -3070,15 +3072,15 @@ button, [role="tab"], .ledger__check {
 
   .tab {
     display: grid;
-    grid-template-columns: 30px 1fr;
+    grid-template-columns: 26px 1fr;
     place-items: center start;
     text-align: left;
-    padding: .75rem .95rem;
+    padding: .6rem .75rem;
     border-radius: 3px;
     border: 1px solid transparent;
     background: transparent;
-    gap: .85rem;
-    min-height: 50px;
+    gap: .65rem;
+    min-height: 44px;
     color: var(--vellum-lo);
     transition: background .15s, border-color .15s, color .15s;
     position: relative;
@@ -3105,13 +3107,13 @@ button, [role="tab"], .ledger__check {
     box-shadow: 0 0 12px rgba(212,179,92,.55);
   }
   .tab__glyph {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     line-height: 1;
     margin: 0;
   }
   .tab__name {
     font-family: 'IM Fell English Local', Georgia, serif;
-    font-size: 1.05rem;
+    font-size: .95rem;
     letter-spacing: .02em;
     text-transform: none;
   }
@@ -3171,7 +3173,7 @@ button, [role="tab"], .ledger__check {
     grid-row: 1 / -1;
     width: 100%;
     max-width: none;
-    padding: 2.8rem 3.2rem 3rem;
+    padding: 1.8rem 2rem 2.25rem;
     margin: 0;
     min-height: calc(100dvh - 5.5rem);
   }
@@ -3203,11 +3205,16 @@ button, [role="tab"], .ledger__check {
 }
 
 @media (min-width: 1280px) {
+  html, body { font-size: 18px; }
   body {
-    grid-template-columns: 300px minmax(0, 1fr);
-    padding: 3rem 3rem 3.5rem;
+    grid-template-columns: 240px minmax(0, 1fr);
+    column-gap: 2rem;
+    padding: 2.5rem 2.5rem 3rem;
   }
-  main.tome { padding: 3rem 4rem 3.5rem; }
+  main.tome { padding: 2.5rem 3rem 3rem; }
+  .tab { min-height: 50px; padding: .75rem .95rem; gap: .85rem; }
+  .tab__glyph { font-size: 1.4rem; }
+  .tab__name { font-size: 1.05rem; }
 }
 
 /* On desktop the bottom tabs are gone, so the toast can sit closer to the
