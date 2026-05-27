@@ -2037,6 +2037,33 @@ const sheetField = ({ label, path, block, ...opts }) =>
     sheetInput({ path, label, ...opts }),
   );
 
+// Stat dropdown for the hero cells (Habilidades / Vitalidad / Recursos).
+// Renders a 0..max <select> with a leading "—" empty option; non-matching
+// stored values just leave the select unselected until the user picks.
+const sheetSelect = ({ path, label, min = 0, max = 20 }) => {
+  const initial = String(getSessionAt(path) ?? '');
+  const options = [el('option', { value: '' }, '—')];
+  for (let i = min; i <= max; i++) {
+    options.push(el('option', { value: String(i) }, String(i)));
+  }
+  const select = el('select', {
+    class: 'hero__cell-input hero__cell-input--select',
+    'aria-label': label || path.join('.'),
+    dataset: { sessionPath: path.join('.') },
+    onchange: (e) => {
+      const from = getSessionAt(path);
+      const to = e.target.value;
+      if (String(from ?? '') === to) return;
+      store.dispatch(makeCommand('SET_SESSION_FIELD', { path, from, to }));
+    },
+  }, ...options);
+  // Assigning value *after* the options exist lets the matching <option>
+  // pick up `selected`. Falls back to "" (the "—" option) when the stored
+  // value isn't in range.
+  select.value = initial;
+  return select;
+};
+
 // The four canonical heroes of Reyes de la Perdición. Order matches the
 // `players` array index, so persisted data carries over without migration.
 const CHARACTER_NAMES = ['Elgan', 'Gerdwyn', 'Iunis', 'Osbert'];
@@ -2142,13 +2169,9 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
 
   const cell = (statKey, label, short) =>
     el('label', { class: 'hero__cell' },
-      sheetInput({
+      sheetSelect({
         path: ['players', idx, statKey],
-        placeholder: '0',
         label: `${characterName}, ${label}`,
-        autocapitalize: 'none',
-        inputmode: 'numeric',
-        variant: 'cell',
       }),
       el('span', { class: 'hero__cell-label' }, short || label),
     );
