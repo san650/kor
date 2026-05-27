@@ -2167,11 +2167,12 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
   const characterName = CHARACTER_NAMES[idx];
   const key = heroKey(idx);
 
-  const cell = (statKey, label, short) =>
+  const cell = (statKey, label, short, opts = {}) =>
     el('label', { class: 'hero__cell' },
       sheetSelect({
         path: ['players', idx, statKey],
         label: `${characterName}, ${label}`,
+        ...opts,
       }),
       el('span', { class: 'hero__cell-label' }, short || label),
     );
@@ -2240,10 +2241,10 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
         cell('terror',  'Terror',  'Terror'),
       ),
       group('Recursos', 'resources',
-        cell('food',   'Comida',      'Comida'),
-        cell('wealth', 'Riqueza',     'Riqueza'),
-        cell('exp',    'Experiencia', 'Exp.'),
-        cell('magic',  'Magia',       'Magia'),
+        cell('food',   'Comida',      'Comida',      { min: 1, max: 50 }),
+        cell('wealth', 'Riqueza',     'Riqueza',     { min: 1, max: 50 }),
+        cell('exp',    'Experiencia', 'Exp.',        { min: 1, max: 50 }),
+        cell('magic',  'Magia',       'Magia',       { min: 1, max: 50 }),
       ),
       el('div', { class: 'hero__items' }, renderHeroItemsSection(idx, characterName)),
     ),
