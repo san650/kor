@@ -207,24 +207,6 @@ body {
 }
 .scene + .scene { margin-top: 1.6rem; }
 
-.scene__title {
-  font-family: 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
-  font-weight: 400;
-  font-size: 1.35rem;
-  margin: 0 0 .15rem;
-  color: var(--ink);
-  display: flex;
-  align-items: baseline;
-  gap: .5rem;
-}
-.scene__title::first-letter {
-  font-size: 1.9em;
-  color: var(--blood);
-  font-weight: 400;
-  margin-right: .04em;
-  line-height: .9;
-  text-shadow: 0 1px 0 rgba(42,20,8,.2);
-}
 .scene__sub {
   font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .72rem;
@@ -232,14 +214,6 @@ body {
   color: var(--ash);
   margin: 0 0 .9rem;
   text-transform: lowercase;
-}
-.flourish {
-  display: block;
-  margin: 0 auto 1.1rem;
-  width: 70%;
-  height: 14px;
-  color: var(--gold-deep);
-  opacity: .85;
 }
 
 /* =========================================================================
@@ -303,7 +277,6 @@ body {
   align-items: center;
   gap: .65rem;
   padding: 0 0 .15rem;
-  margin: 1.15rem 0 .35rem;
 }
 .ledger__title {
   font-family: 'IM Fell English Local', Georgia, serif;
@@ -480,11 +453,14 @@ body {
    chapter/day tag all align with the misiones and compañeros rows. */
 .ledger__list--notes .ledger__note {
   display: grid;
-  grid-template-columns: 20px 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: .55rem;
   padding: .45rem 0;
   align-items: start;
   border-bottom: 1px dashed rgba(122, 90, 40, .28);
+}
+.ledger__list--notes .ledger__note:has(> .ledger__check) {
+  grid-template-columns: 20px 1fr auto;
 }
 .ledger__list--notes .ledger__note[data-done="true"] .ledger__check {
   background: var(--blood);
@@ -1973,8 +1949,6 @@ body {
   gap: 1.1rem;
 }
 
-.gamesheet__title { margin-top: .1rem; }
-
 /* --- Generic field / label / input ----------------------------------- */
 .gamesheet__field {
   display: flex;
@@ -3203,9 +3177,7 @@ button, [role="tab"], .ledger__check {
   }
 
   /* Make scene type breathe a little more on desktop */
-  .scene__title { font-size: 1.5rem; }
   .scene__sub   { font-size: .78rem; }
-  .flourish     { width: 60%; max-width: 360px; }
 
   /* === Drawer floats as a centred sheet (no more bottom-tabs to anchor to) === */
 

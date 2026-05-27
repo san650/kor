@@ -403,24 +403,6 @@ const askHeroPicker = (availableIndices) => new Promise((resolve) => {
 
 const newId = () => 'i' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
 
-/* Florituras celtas como nodos SVG */
-const flourish = () =>
-  svgEl('svg', {
-    class: 'flourish',
-    viewBox: '0 0 200 14',
-    fill: 'none',
-    stroke: 'currentColor',
-    'stroke-width': '1',
-    'stroke-linecap': 'round',
-    'aria-hidden': 'true',
-  },
-    svgEl('path', { d: 'M0 7h60M140 7h60', opacity: '0.7' }),
-    svgEl('path', { d: 'M70 7c5-5 10-5 15 0s10 5 15 0 10-5 15 0', opacity: '0.85' }),
-    svgEl('circle', { cx: '100', cy: '7', r: '2.5', fill: 'currentColor', stroke: 'none' }),
-    svgEl('circle', { cx: '62', cy: '7', r: '1.2', fill: 'currentColor', stroke: 'none', opacity: '0.6' }),
-    svgEl('circle', { cx: '138', cy: '7', r: '1.2', fill: 'currentColor', stroke: 'none', opacity: '0.6' }),
-  );
-
 /* -------------------------------------------------------------------------
    Andanzas (exploración)
    ------------------------------------------------------------------------- */
@@ -1123,30 +1105,6 @@ const renderByLocation = (doc) => {
     });
 
   scene.append(renderLedgerSection({
-    title: 'Notas',
-    addLabel: 'anotar',
-    onAdd: async () => {
-      const result = await askEditItem({
-        title: 'Nueva nota',
-        textLabel: '¿Qué se quiere recordar?',
-        textPlaceholder: 'La hoguera ardió tres noches…',
-        hasLocation: true,
-        locationValue: prefillLoc,
-      });
-      if (!result) return;
-      const n = {
-        id: newId(),
-        text: result.text,
-        location: result.location || '',
-        chapter: result.chapter,
-        day: result.day,
-      };
-      store.dispatch(makeCommand('ADD_NOTE', { to: n, index: allNotes.length }));
-    },
-    body: renderNoteRows(notes),
-  }));
-
-  scene.append(renderLedgerSection({
     title: 'Misiones',
     addLabel: 'añadir',
     onAdd: async () => {
@@ -1172,6 +1130,30 @@ const renderByLocation = (doc) => {
       title: '¿Borrar la misión?',
       body: `«${it.title}» será arrancada del diario.`,
     }), 'Editar misión'),
+  }));
+
+  scene.append(renderLedgerSection({
+    title: 'Notas',
+    addLabel: 'anotar',
+    onAdd: async () => {
+      const result = await askEditItem({
+        title: 'Nueva nota',
+        textLabel: '¿Qué se quiere recordar?',
+        textPlaceholder: 'La hoguera ardió tres noches…',
+        hasLocation: true,
+        locationValue: prefillLoc,
+      });
+      if (!result) return;
+      const n = {
+        id: newId(),
+        text: result.text,
+        location: result.location || '',
+        chapter: result.chapter,
+        day: result.day,
+      };
+      store.dispatch(makeCommand('ADD_NOTE', { to: n, index: allNotes.length }));
+    },
+    body: renderNoteRows(notes),
   }));
 
   scene.append(sharedLocSection({
@@ -2247,11 +2229,6 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
 
 const renderHeroes = (doc = store.state.doc) => {
   const scene = el('section', { class: 'scene gamesheet' });
-
-  scene.append(
-    el('h2', { class: 'scene__title gamesheet__title' }, 'Hoja de Juego'),
-    flourish(),
-  );
 
   // Transcurso del tiempo lives at the top of the gamesheet now — the
   // horarium is the first thing players reach for between turns.
