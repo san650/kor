@@ -198,14 +198,28 @@ const askConfirm = ({ title, body, confirmLabel = 'Borrar', cancelLabel = 'Conse
     confirmDialog.showModal();
   });
 
-const editDialog     = $('edit-dialog');
-const editTitle      = $('edit-title');
-const editLabelText  = $('edit-label-text');
-const editInputText  = $('edit-input-text');
-const editFieldLoc   = $('edit-field-loc');
-const editInputLoc   = $('edit-input-loc');
-const editForm       = editDialog.querySelector('form');
-const editCancel     = editDialog.querySelector('[data-edit-cancel]');
+const editDialog        = $('edit-dialog');
+const editTitle         = $('edit-title');
+const editLabelText     = $('edit-label-text');
+const editInputText     = $('edit-input-text');
+const editFieldLoc      = $('edit-field-loc');
+const editInputLoc      = $('edit-input-loc');
+const editFieldWhen     = $('edit-field-when');
+const editInputChapter  = $('edit-input-chapter');
+const editInputDay      = $('edit-input-day');
+const editForm          = editDialog.querySelector('form');
+const editCancel        = editDialog.querySelector('[data-edit-cancel]');
+
+// Parse the chapter/day <select> string into the integer we store, or null
+// when the option is "—". Returns null for any value outside the valid range.
+const parseChapter = (raw) => {
+  const n = parseInt(raw, 10);
+  return Number.isInteger(n) && n >= 1 && n <= 10 ? n : null;
+};
+const parseDay = (raw) => {
+  const n = parseInt(raw, 10);
+  return Number.isInteger(n) && n >= 1 && n <= 6 ? n : null;
+};
 
 let editResolver = null;
 const settleEdit = (value) => {
@@ -217,15 +231,18 @@ editForm.addEventListener('submit', (e) => {
   const text = editInputText.value.trim();
   if (!text) { editInputText.focus(); return; }
   const location = editFieldLoc.hidden ? null : editInputLoc.value.trim();
-  settleEdit({ text, location });
+  const chapter = editFieldWhen.hidden ? null : parseChapter(editInputChapter.value);
+  const day = editFieldWhen.hidden ? null : parseDay(editInputDay.value);
+  settleEdit({ text, location, chapter, day });
 });
 editCancel.addEventListener('click', () => settleEdit(null));
 editDialog.addEventListener('close', () => { if (editResolver) settleEdit(null); });
 editDialog.onclick = (e) => { if (e.target === editDialog) settleEdit(null); };
 
-// askEditItem opens a modal with a description field and an optional
-// location field. Resolves with `{text, location}` (location may be null
-// when hasLocation is false) or `null` on cancel.
+// askEditItem opens a modal with a description field and (optionally) a
+// location field plus a chapter/day pair. Resolves with
+// `{text, location, chapter, day}` — `location` is null when not enabled,
+// `chapter`/`day` are integers or null. Returns null on cancel.
 const askEditItem = ({
   title,
   textLabel = 'Descripción',
@@ -234,6 +251,9 @@ const askEditItem = ({
   textAutocapitalize = 'sentences',
   hasLocation = false,
   locationValue = '',
+  hasChapterDay = true,
+  chapterValue = null,
+  dayValue = null,
 }) => new Promise((resolve) => {
   editResolver = resolve;
   editTitle.textContent = title;
@@ -247,6 +267,15 @@ const askEditItem = ({
   } else {
     editFieldLoc.hidden = true;
     editInputLoc.value = '';
+  }
+  if (hasChapterDay) {
+    editFieldWhen.hidden = false;
+    editInputChapter.value = parseChapter(chapterValue) != null ? String(chapterValue) : '';
+    editInputDay.value = parseDay(dayValue) != null ? String(dayValue) : '';
+  } else {
+    editFieldWhen.hidden = true;
+    editInputChapter.value = '';
+    editInputDay.value = '';
   }
   editDialog.showModal();
   requestAnimationFrame(() => {
@@ -423,6 +452,22 @@ const renderLedgerSection = ({ title, addLabel, onAdd, body }) => {
   return section;
 };
 
+// Format the optional chapter/day pair as a compact tag, e.g. "Cap 1-III".
+// Returns null when neither is set so callers can omit the tag entirely.
+const formatChapterDay = (chapter, day) => {
+  const c = Number.isInteger(chapter) && chapter >= 1 && chapter <= 10 ? chapter : null;
+  const d = Number.isInteger(day) && day >= 1 && day <= 6 ? day : null;
+  if (c == null && d == null) return null;
+  if (c != null && d != null) return `Cap ${c}-${ROMAN_NUMERALS[d - 1]}`;
+  if (c != null) return `Cap ${c}`;
+  return `Día ${ROMAN_NUMERALS[d - 1]}`;
+};
+
+const whenTag = (chapter, day) => {
+  const label = formatChapterDay(chapter, day);
+  return label ? el('span', { class: 'ledger__row-when' }, label) : null;
+};
+
 const renderChecklistRows = (items, prefix, confirmRemove, editTitle = 'Editar') => {
   if (items.length === 0) return null;
   const list = el('ul', { class: 'ledger__list' });
@@ -448,14 +493,26 @@ const renderChecklistRows = (items, prefix, confirmRemove, editTitle = 'Editar')
               textValue: it.title || '',
               hasLocation: true,
               locationValue: it.location || '',
+              chapterValue: it.chapter ?? null,
+              dayValue: it.day ?? null,
             });
             if (!result) return;
-            const to = { ...it, title: result.text, location: result.location || '' };
-            if (to.title === it.title && to.location === (it.location || '')) return;
+            const to = {
+              ...it,
+              title: result.text,
+              location: result.location || '',
+              chapter: result.chapter,
+              day: result.day,
+            };
+            if (to.title === it.title
+              && to.location === (it.location || '')
+              && to.chapter === (it.chapter ?? null)
+              && to.day === (it.day ?? null)) return;
             store.dispatch(makeCommand(`UPDATE_${prefix}`, { id: it.id, from: it, to }));
           },
         },
           it.location ? el('span', { class: 'ledger__row-loc' }, it.location) : null,
+          whenTag(it.chapter, it.day),
           el('span', { class: 'ledger__row-title' }, it.title),
         ),
         el('button', {
@@ -479,7 +536,18 @@ const renderNoteRows = (notes) => {
   const list = el('ul', { class: 'ledger__list ledger__list--notes' });
   notes.forEach((n, idx) => {
     list.append(
-      el('li', { class: 'ledger__note' },
+      el('li', {
+        class: 'ledger__note',
+        dataset: { done: n.done ? 'true' : 'false' },
+      },
+        el('button', {
+          type: 'button',
+          class: 'ledger__check',
+          'aria-label': n.done ? 'Marcar como pendiente' : 'Marcar como cumplida',
+          onclick: () => store.dispatch(makeCommand('TOGGLE_NOTE', {
+            id: n.id, from: !!n.done, to: !n.done,
+          })),
+        }, n.done ? icon('check') : null),
         el('button', {
           type: 'button',
           class: 'ledger__note-text',
@@ -491,14 +559,26 @@ const renderNoteRows = (notes) => {
               textValue: n.text || '',
               hasLocation: true,
               locationValue: n.location || '',
+              chapterValue: n.chapter ?? null,
+              dayValue: n.day ?? null,
             });
             if (!result) return;
-            const to = { ...n, text: result.text, location: result.location || '' };
-            if (to.text === (n.text || '') && to.location === (n.location || '')) return;
+            const to = {
+              ...n,
+              text: result.text,
+              location: result.location || '',
+              chapter: result.chapter,
+              day: result.day,
+            };
+            if (to.text === (n.text || '')
+              && to.location === (n.location || '')
+              && to.chapter === (n.chapter ?? null)
+              && to.day === (n.day ?? null)) return;
             store.dispatch(makeCommand('UPDATE_NOTE', { id: n.id, from: n, to }));
           },
         },
           n.location ? el('span', { class: 'ledger__row-loc ledger__note-loc' }, n.location) : null,
+          whenTag(n.chapter, n.day),
           el('span', { class: 'ledger__note-body' }, n.text),
         ),
         el('button', {
@@ -581,7 +661,18 @@ const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') =
   const list = el('ul', { class: 'ledger__list' });
   items.forEach((it, idx) => {
     list.append(
-      el('li', { class: 'ledger__row ledger__row--text' },
+      el('li', {
+        class: 'ledger__row ledger__row--text',
+        dataset: { done: it.done ? 'true' : 'false' },
+      },
+        el('button', {
+          type: 'button',
+          class: 'ledger__check',
+          'aria-label': it.done ? 'Marcar como pendiente' : 'Marcar como cumplido',
+          onclick: () => store.dispatch(makeCommand(`TOGGLE_${prefix}`, {
+            id: it.id, from: !!it.done, to: !it.done,
+          })),
+        }, it.done ? icon('check') : null),
         el('button', {
           type: 'button',
           class: 'ledger__row-body',
@@ -593,14 +684,26 @@ const renderTextLocRows = (items, prefix, confirmRemove, editTitle = 'Editar') =
               textValue: it.text || '',
               hasLocation: true,
               locationValue: it.location || '',
+              chapterValue: it.chapter ?? null,
+              dayValue: it.day ?? null,
             });
             if (!result) return;
-            const to = { ...it, text: result.text, location: result.location || '' };
-            if (to.text === (it.text || '') && to.location === (it.location || '')) return;
+            const to = {
+              ...it,
+              text: result.text,
+              location: result.location || '',
+              chapter: result.chapter,
+              day: result.day,
+            };
+            if (to.text === (it.text || '')
+              && to.location === (it.location || '')
+              && to.chapter === (it.chapter ?? null)
+              && to.day === (it.day ?? null)) return;
             store.dispatch(makeCommand(`UPDATE_${prefix}`, { id: it.id, from: it, to }));
           },
         },
           it.location ? el('span', { class: 'ledger__row-loc' }, it.location) : null,
+          whenTag(it.chapter, it.day),
           el('span', { class: 'ledger__row-title' }, it.text || '—'),
         ),
         el('button', {
@@ -908,128 +1011,18 @@ const renderLocationsSection = (locations, stones) => {
   return renderLedgerSection({ title: 'Locaciones', body: group });
 };
 
-const renderExploration = (doc) => {
-  const scene = el('section', { class: 'scene' });
-
-  scene.append(
-    el('h2', { class: 'scene__title' }, 'Andanzas'),
-    el('p',  { class: 'scene__sub'   }, 'lo recorrido y lo escrito'),
-    flourish(),
-  );
-
-  // Transcurso del tiempo — a compact horarium: 10 chapter pips above a
-  // horizontal day-to-night band of six horæ.
-  scene.append(renderHorariumSection(doc));
-
-  const quests       = sortByLocation(doc.quests   || []);
-  const sideQuests   = sortByLocation(doc.sideQuests || []);
-  const notes        = sortByLocation(doc.notes    || []);
-  const partners     = sortByLocation(doc.partners || []);
-  const locations    = doc.locations    || [];
-  const guideStones  = doc.guideStones  || [];
-
-  // Every add flow uses the same dialog as edit (askEditItem) so both
-  // text and the optional location are visible in a single modal.
-  const sharedSection = ({ title, addLabel, prefix, items, promptTitle, promptLabel, promptPlaceholder, removeTitle, editTitle }) =>
-    renderLedgerSection({
-      title,
-      addLabel,
-      onAdd: async () => {
-        const result = await askEditItem({
-          title: promptTitle,
-          textLabel: promptLabel,
-          textPlaceholder: promptPlaceholder,
-          hasLocation: true,
-        });
-        if (!result) return;
-        const it = { id: newId(), text: result.text, location: result.location || '' };
-        store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: items.length }));
-      },
-      body: renderTextLocRows(items, prefix, (it) => askConfirm({
-        title: removeTitle,
-        body: it.text ? `«${it.text}» se perderá.` : 'La entrada se perderá.',
-      }), editTitle || `Editar`),
-    });
-
-  scene.append(renderLedgerSection({
-    title: 'Misión principal',
-    addLabel: 'iniciar',
-    onAdd: async () => {
-      const result = await askEditItem({
-        title: 'Nueva misión',
-        textLabel: '¿Qué se emprende?',
-        textPlaceholder: 'Encontrar al Ermitaño del Tarn',
-        hasLocation: true,
-      });
-      if (!result) return;
-      const q = { id: newId(), title: result.text, location: result.location || '', done: false };
-      store.dispatch(makeCommand('ADD_QUEST', { to: q, index: quests.length }));
-    },
-    body: renderQuestRows(quests),
-  }));
-
-  scene.append(renderLedgerSection({
-    title: 'Misiones secundarias',
-    addLabel: 'añadir',
-    onAdd: async () => {
-      const result = await askEditItem({
-        title: 'Nueva misión secundaria',
-        textLabel: '¿Qué encargo se acepta?',
-        textPlaceholder: 'Recuperar la espada perdida',
-        hasLocation: true,
-      });
-      if (!result) return;
-      const it = { id: newId(), title: result.text, location: result.location || '', done: false };
-      store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: sideQuests.length }));
-    },
-    body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
-      title: '¿Borrar la misión?',
-      body: `«${it.title}» será arrancada del diario.`,
-    }), 'Editar misión secundaria'),
-  }));
-
-  scene.append(renderLedgerSection({
-    title: 'Notas',
-    addLabel: 'anotar',
-    onAdd: async () => {
-      const result = await askEditItem({
-        title: 'Nueva nota',
-        textLabel: '¿Qué se quiere recordar?',
-        textPlaceholder: 'La hoguera ardió tres noches…',
-        hasLocation: true,
-      });
-      if (!result) return;
-      const n = { id: newId(), text: result.text, location: result.location || '' };
-      store.dispatch(makeCommand('ADD_NOTE', { to: n, index: notes.length }));
-    },
-    body: renderNoteRows(notes),
-  }));
-
-  scene.append(sharedSection({
-    title: 'Compañeros',
-    addLabel: 'añadir',
-    prefix: 'PARTNER',
-    items: partners,
-    promptTitle: 'Nuevo compañero',
-    promptLabel: 'Nombre o descripción',
-    promptPlaceholder: 'Aedric el Bardo',
-    removeTitle: '¿Olvidar a este compañero?',
-    editTitle: 'Editar compañero',
-  }));
-
-  scene.append(renderLocationsSection(locations, guideStones));
-
-  return scene;
-};
-
 /* -------------------------------------------------------------------------
-   By-location view — a per-location lens over every Andanzas ledger.
-   Pick a location at the top, see all its quests / notes / partners / etc.
-   below, and add new entries that arrive pre-filled with that location.
+   Andanzas — the per-location lens over notes / misiones / compañeros.
+   Pick a location at the top (or "Todas" to drop the filter); add new
+   entries that arrive pre-filled with that location, or add new location
+   codes via the quick-add input.
    ------------------------------------------------------------------------- */
 
 let selectedLocation = null;
+let hideCompleted = false;
 
+// `selectedLocation === null` means the "Todas" pseudo-chip is active and
+// every ledger renders unfiltered.
 const renderByLocation = (doc) => {
   const scene = el('section', { class: 'scene' });
 
@@ -1040,20 +1033,21 @@ const renderByLocation = (doc) => {
       (a.location || '').localeCompare(b.location || '', 'es', { numeric: true, sensitivity: 'base' }),
     );
 
-  if (locations.length === 0) {
-    scene.append(el('p', { class: 'hush' },
-      'Aún no hay locaciones registradas. Añádelas desde Andanzas → Locaciones.'));
-    return scene;
+  // The selected chip clamps to a still-existing code. If it was removed,
+  // fall through to "Todas" rather than silently jumping the user to an
+  // unrelated location.
+  if (selectedLocation != null && !locations.some((l) => l.location === selectedLocation)) {
+    selectedLocation = null;
   }
 
-  // Auto-select first (or fall back when the previously selected one was
-  // removed from the document).
-  if (!locations.some((l) => l.location === selectedLocation)) {
-    selectedLocation = locations[0].location;
-  }
-
-  // Selector chips
+  // Selector — "Todas" chip first, then every revealed location.
   const chips = el('div', { class: 'by-loc__chips' });
+  chips.append(el('button', {
+    type: 'button',
+    class: 'by-loc__chip by-loc__chip--all',
+    'aria-pressed': selectedLocation == null ? 'true' : 'false',
+    onclick: () => { selectedLocation = null; render(); },
+  }, 'Todas'));
   for (const loc of locations) {
     const isSel = loc.location === selectedLocation;
     chips.append(el('button', {
@@ -1065,23 +1059,41 @@ const renderByLocation = (doc) => {
   }
   scene.append(chips);
 
-  const loc = selectedLocation;
-  const matches = (it) => (it.location || '').trim() === loc;
+  // Filter strip + quick-add — the toggle hides every completed entry across
+  // all sections on this screen.
+  scene.append(el('div', { class: 'by-loc__controls' },
+    renderLocationAddInput(doc.locations || []),
+    el('button', {
+      type: 'button',
+      class: 'by-loc__hide-done',
+      'aria-pressed': hideCompleted ? 'true' : 'false',
+      onclick: () => { hideCompleted = !hideCompleted; render(); },
+      title: 'Ocultar notas, misiones y compañeros cumplidos',
+    }, 'ocultar cumplidas'),
+  ));
 
-  // Filter each ledger to items whose location matches the selection.
-  const allQuests     = doc.quests     || [];
+  const loc = selectedLocation;
+  const showAll = loc == null;
+  const matchesLoc = (it) => showAll || (it.location || '').trim() === loc;
+  const matchesDone = (it) => !hideCompleted || !it.done;
+  const matches = (it) => matchesLoc(it) && matchesDone(it);
+
+  // Filter each ledger to items whose location matches the selection
+  // (or all items when "Todas" is active), and drop completed entries
+  // when the toggle is on.
   const allSideQuests = doc.sideQuests || [];
   const allNotes      = doc.notes      || [];
   const allPartners   = doc.partners   || [];
 
-  const quests     = allQuests.filter(matches);
   const sideQuests = allSideQuests.filter(matches);
   const notes      = allNotes.filter(matches);
   const partners   = allPartners.filter(matches);
 
-  // Per-section add handler that pre-fills the active location, then asks
-  // the same askEditItem modal as the Andanzas flows so behaviour stays
-  // identical (text + optional location override).
+  // Per-section add handler. When a location is selected we pre-fill it
+  // in the modal; in "Todas" mode the modal opens with an empty location
+  // so the user can still add from this screen.
+  const prefillLoc = showAll ? '' : loc;
+
   const sharedLocSection = ({ title, addLabel, prefix, items, allLength, promptTitle, promptLabel, promptPlaceholder, removeTitle, editTitle }) =>
     renderLedgerSection({
       title,
@@ -1092,10 +1104,16 @@ const renderByLocation = (doc) => {
           textLabel: promptLabel,
           textPlaceholder: promptPlaceholder,
           hasLocation: true,
-          locationValue: loc,
+          locationValue: prefillLoc,
         });
         if (!result) return;
-        const it = { id: newId(), text: result.text, location: result.location || '' };
+        const it = {
+          id: newId(),
+          text: result.text,
+          location: result.location || '',
+          chapter: result.chapter,
+          day: result.day,
+        };
         store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: allLength }));
       },
       body: renderTextLocRows(items, prefix, (it) => askConfirm({
@@ -1103,45 +1121,6 @@ const renderByLocation = (doc) => {
         body: it.text ? `«${it.text}» se perderá.` : 'La entrada se perderá.',
       }), editTitle),
     });
-
-  scene.append(renderLedgerSection({
-    title: 'Misión principal',
-    addLabel: 'iniciar',
-    onAdd: async () => {
-      const result = await askEditItem({
-        title: 'Nueva misión',
-        textLabel: '¿Qué se emprende?',
-        textPlaceholder: 'Encontrar al Ermitaño del Tarn',
-        hasLocation: true,
-        locationValue: loc,
-      });
-      if (!result) return;
-      const q = { id: newId(), title: result.text, location: result.location || '', done: false };
-      store.dispatch(makeCommand('ADD_QUEST', { to: q, index: allQuests.length }));
-    },
-    body: renderQuestRows(quests),
-  }));
-
-  scene.append(renderLedgerSection({
-    title: 'Misiones secundarias',
-    addLabel: 'añadir',
-    onAdd: async () => {
-      const result = await askEditItem({
-        title: 'Nueva misión secundaria',
-        textLabel: '¿Qué encargo se acepta?',
-        textPlaceholder: 'Recuperar la espada perdida',
-        hasLocation: true,
-        locationValue: loc,
-      });
-      if (!result) return;
-      const it = { id: newId(), title: result.text, location: result.location || '', done: false };
-      store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: allSideQuests.length }));
-    },
-    body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
-      title: '¿Borrar la misión?',
-      body: `«${it.title}» será arrancada del diario.`,
-    }), 'Editar misión secundaria'),
-  }));
 
   scene.append(renderLedgerSection({
     title: 'Notas',
@@ -1152,13 +1131,47 @@ const renderByLocation = (doc) => {
         textLabel: '¿Qué se quiere recordar?',
         textPlaceholder: 'La hoguera ardió tres noches…',
         hasLocation: true,
-        locationValue: loc,
+        locationValue: prefillLoc,
       });
       if (!result) return;
-      const n = { id: newId(), text: result.text, location: result.location || '' };
+      const n = {
+        id: newId(),
+        text: result.text,
+        location: result.location || '',
+        chapter: result.chapter,
+        day: result.day,
+      };
       store.dispatch(makeCommand('ADD_NOTE', { to: n, index: allNotes.length }));
     },
     body: renderNoteRows(notes),
+  }));
+
+  scene.append(renderLedgerSection({
+    title: 'Misiones',
+    addLabel: 'añadir',
+    onAdd: async () => {
+      const result = await askEditItem({
+        title: 'Nueva misión',
+        textLabel: '¿Qué encargo se acepta?',
+        textPlaceholder: 'Recuperar la espada perdida',
+        hasLocation: true,
+        locationValue: prefillLoc,
+      });
+      if (!result) return;
+      const it = {
+        id: newId(),
+        title: result.text,
+        location: result.location || '',
+        chapter: result.chapter,
+        day: result.day,
+        done: false,
+      };
+      store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: allSideQuests.length }));
+    },
+    body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
+      title: '¿Borrar la misión?',
+      body: `«${it.title}» será arrancada del diario.`,
+    }), 'Editar misión'),
   }));
 
   scene.append(sharedLocSection({
@@ -1743,6 +1756,14 @@ const formatLogEntry = (cmd, doc) => {
       return `Nota borrada: «${(p.from?.text || '').slice(0, 40)}${(p.from?.text?.length ?? 0) > 40 ? '…' : ''}»`;
     case 'UPDATE_NOTE':
       return `Nota editada: «${(p.to?.text || '').slice(0, 40)}${(p.to?.text?.length ?? 0) > 40 ? '…' : ''}»`;
+    case 'TOGGLE_NOTE': {
+      const n = findIn('notes', p.id);
+      return `Nota${n ? ` «${(n.text || '').slice(0, 40)}»` : ''}: ${p.to ? 'cumplida' : 'reabierta'}`;
+    }
+    case 'TOGGLE_PARTNER': {
+      const it = findIn('partners', p.id);
+      return `Compañero${it ? ` «${it.text}»` : ''}: ${p.to ? 'cumplido' : 'reabierto'}`;
+    }
     case 'SET_SESSION_FIELD':
       return `Héroes — ${describeSessionPath(p.path)}`;
     default:
@@ -2224,14 +2245,23 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
   );
 };
 
-const renderHeroes = () => {
+const renderHeroes = (doc = store.state.doc) => {
   const scene = el('section', { class: 'scene gamesheet' });
 
   scene.append(
-    el('h2', { class: 'scene__title gamesheet__title' }, 'Héroes'),
-    el('p',  { class: 'scene__sub' }, 'los compañeros de andanzas'),
+    el('h2', { class: 'scene__title gamesheet__title' }, 'Hoja de Juego'),
     flourish(),
   );
+
+  // Transcurso del tiempo lives at the top of the gamesheet now — the
+  // horarium is the first thing players reach for between turns.
+  scene.append(renderHorariumSection(doc));
+
+  // Locaciones — the deck of revealed location cards (and any Roca Guía
+  // boards). Sits between time and the heroes grid.
+  const locations   = doc.locations   || [];
+  const guideStones = doc.guideStones || [];
+  scene.append(renderLocationsSection(locations, guideStones));
 
   const session = store.state.doc.session || {};
   const selected = Array.isArray(session.selectedHeroes) ? session.selectedHeroes : [];
@@ -2369,10 +2399,9 @@ const render = () => {
   const doc = store.state.doc;
   setTabs(doc.tab);
   view.replaceChildren();
-  if (doc.tab === 'heroes')           view.append(renderHeroes());
-  else if (doc.tab === 'exploration') view.append(renderExploration(doc));
-  else if (doc.tab === 'byLocation')  view.append(renderByLocation(doc));
-  else                                view.append(renderStatuses(doc));
+  if (doc.tab === 'heroes')          view.append(renderHeroes(doc));
+  else if (doc.tab === 'byLocation') view.append(renderByLocation(doc));
+  else                               view.append(renderStatuses(doc));
   // The undo/redo controls live in the drawer now; if it's open, rerender
   // so disabled-states and the action items stay in sync with the store.
   if (drawerOpen) renderDrawerBody();

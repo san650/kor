@@ -2,7 +2,7 @@ import { COMMANDS, isNoOp, defaultSession } from './commands.js';
 import { History } from './history.js';
 import { loadState, saveState, requestPersistence } from './db.js';
 
-const VALID_TABS = new Set(['exploration', 'byLocation', 'statuses', 'heroes']);
+const VALID_TABS = new Set(['byLocation', 'statuses', 'heroes']);
 
 // Bump when the shape of `doc` changes. Add a matching `if (v < N)` step
 // inside `migrate()` below so older persisted docs (IndexedDB) and older
@@ -12,7 +12,7 @@ export const CURRENT_SCHEMA_VERSION = 4;
 const initialState = () => ({
   doc: {
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    tab: 'exploration',
+    tab: 'byLocation',
     quests: [],
     sideQuests: [],
     notes: [],
@@ -165,7 +165,7 @@ const ensureChapterTime = (raw) =>
     return Number.isFinite(n) ? Math.max(0, Math.min(6, Math.floor(n))) : 0;
   });
 
-const ensureTab = (raw) => (VALID_TABS.has(raw) ? raw : 'exploration');
+const ensureTab = (raw) => (VALID_TABS.has(raw) ? raw : 'byLocation');
 
 class Store {
   constructor() {

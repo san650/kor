@@ -175,13 +175,22 @@ const listCommands = (listKey, prefix) => ({
 
 Object.assign(COMMANDS,
   checklistCommands('sideQuests', 'SIDE_QUEST'),
+  checklistCommands('partners',   'PARTNER'),
   listCommands('timeTokens',     'TIME_TOKEN'),
-  listCommands('partners',       'PARTNER'),
   listCommands('guardians',      'GUARDIAN'),
   listCommands('perditionKings', 'PERDITION_KING'),
   listCommands('locations',      'LOCATION'),
   listCommands('guideStones',    'GUIDE_STONE'),
 );
+
+// Toggle a note's `done` flag. Mirrors TOGGLE_<X> from checklistCommands but
+// has to live alongside the bespoke ADD/REMOVE/UPDATE_NOTE definitions
+// below.
+COMMANDS.TOGGLE_NOTE = {
+  apply: (s, p) => replaceListItem(s, 'notes', p.id, (n) => ({ ...n, done: p.to })),
+  revert: (s, p) => replaceListItem(s, 'notes', p.id, (n) => ({ ...n, done: p.from })),
+  coalesceKey: (p) => `toggleNote:${p.id}`,
+};
 
 // Inline edit for guide-stone quadrants/center. The card surfaces five
 // text inputs (center + 4 quadrants) that users fill in over time as they
