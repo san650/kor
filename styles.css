@@ -411,6 +411,7 @@ body {
   color: var(--ink);
   word-break: break-word;
   line-height: 1.25;
+  white-space: pre-wrap;
 }
 /* Chapter/Day tag — sits next to the location plaque at the row's tail.
    Distinct ink tint and a softer border so it reads as metadata, not as
@@ -1184,7 +1185,8 @@ body {
   color: var(--ash);
   text-transform: lowercase;
 }
-.prompt__field input {
+.prompt__field input,
+.prompt__field textarea {
   font: inherit;
   font-family: 'IM Fell English Local', Georgia, serif;
   font-size: 1.1rem;
@@ -1197,7 +1199,14 @@ body {
   border-radius: 0;
   -webkit-appearance: none;
 }
-.prompt__field input:focus { border-bottom-color: var(--blood); }
+.prompt__field textarea {
+  resize: vertical;
+  min-height: 4rem;
+  line-height: 1.35;
+  font-family: 'IM Fell English Local', Georgia, serif;
+}
+.prompt__field input:focus,
+.prompt__field textarea:focus { border-bottom-color: var(--blood); }
 .prompt__actions {
   display: flex;
   justify-content: flex-end;
@@ -2272,6 +2281,15 @@ body {
   .hero { opacity: 1; transform: none; animation: none; }
 }
 
+/* After the first render of this hero card, app.js re-renders with this
+   modifier so dropdown / input edits don't re-fire the intro slide-in
+   (which read as a full-page flash). */
+.hero--mounted {
+  opacity: 1;
+  transform: none;
+  animation: none;
+}
+
 /* Small gilded corner notches — a quiet illuminated mark, not loud. */
 .hero::before {
   content: "";
@@ -2606,326 +2624,86 @@ button, [role="tab"], .ledger__check {
 }
 
 /* =========================================================================
-   Transcurso del tiempo — el horarium
-
-   A horizontal sundial: ten chapter pips above six horæ that gild and darken
-   from dawn into nightfall. Compact by design; the section earns its space
-   only when actually consulted.
+   Transcurso del tiempo — flat chapter + day selector.
+   Two button rows, no ornament. State is colour-coded on the chapter
+   row (empty / partial / done / selected); the day row uses the same
+   ink-fill language as the rest of the app's "active" toggles.
    ========================================================================= */
 
 .horarium-section { margin: .65rem 0 1rem; }
 .horarium-section .ledger__head { margin-bottom: .45rem; }
 
-/* The chapter name lives in the ledger head's right slot (where 'add'
-   buttons normally appear). Tiny small-caps abbreviation paired with a
-   large illuminated numeral. */
-.horarium__chapter-label {
-  display: inline-flex;
-  align-items: baseline;
-  gap: .35rem;
-  padding: .1rem .4rem .1rem .5rem;
-  border-left: 1px solid rgba(122, 90, 40, .35);
-  color: var(--ink-soft);
-  line-height: 1;
-  transition: color .25s;
+.time {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  padding-top: .35rem;
 }
-.horarium__chapter-label[data-full="true"] { color: var(--blood); }
-.horarium__chapter-label-cap {
+.time__group {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: .55rem;
+  align-items: center;
+}
+.time__label {
   font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .58rem;
-  letter-spacing: .18em;
+  letter-spacing: .22em;
   text-transform: lowercase;
-  color: var(--ash);
-}
-.horarium__chapter-label-num {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1.1rem;
-  color: inherit;
-  letter-spacing: .01em;
-}
-
-.horarium {
-  display: flex;
-  flex-direction: column;
-  gap: .55rem;
-  padding: .15rem 0 .1rem;
-}
-
-/* ---------- Chapter strip — ten pips on a sepia rule ---------- */
-
-.horarium__chapters {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  position: relative;
-  padding: .35rem 0 .45rem;
-}
-
-.horarium__chapter {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  cursor: pointer;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
   color: var(--ink-faint);
-  transition: color .18s, transform .08s;
+  white-space: nowrap;
 }
-.horarium__chapter:active { transform: scale(.92); }
-.horarium__chapter:hover  { color: var(--ink); }
-
-.horarium__chapter-num {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: 1rem;
-  letter-spacing: .1em;
-  line-height: 1;
-  text-transform: lowercase;
+.time__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
 }
-
-/* Subtle state mark below each numeral — a single 3px element that
-   transforms (dot → bar) without shifting layout. */
-.horarium__chapter-mark {
-  width: 4px;
-  height: 4px;
-  margin-top: 4px;
-  border-radius: 50%;
+.time__btn {
+  appearance: none;
   background: transparent;
-  box-shadow: 0 0 0 1px transparent;
-  transition: background .2s, box-shadow .2s, width .2s, transform .2s;
-}
-.horarium__chapter[data-state="partial"] .horarium__chapter-mark {
-  background: var(--gold-deep);
-  box-shadow: 0 0 0 1px rgba(122, 90, 40, .35);
-}
-.horarium__chapter[data-state="done"] .horarium__chapter-mark {
-  background: var(--blood);
-  box-shadow: 0 0 0 1px rgba(74, 10, 10, .4);
-  width: 10px;
-  border-radius: 1px;
-}
-
-/* Selected: blood ink + a fine gold rule above (an illuminator's marker). */
-.horarium__chapter[data-selected="true"] { color: var(--blood); }
-.horarium__chapter[data-selected="true"] .horarium__chapter-num {
-  font-weight: 700;
-  font-size: .72rem;
-  text-shadow: 0 0 6px rgba(168, 40, 31, .25);
-}
-.horarium__chapter[data-selected="true"]::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 18px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--blood) 30%, var(--blood) 70%, transparent);
-  border-radius: 1px;
-}
-
-/* Tiny bump-out below the rule, pointing at the active pip. */
-.horarium__chapter[data-selected="true"]::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-top: 3px solid var(--blood);
-}
-
-/* ---------- Horary band — six horæ between sun and moon ---------- */
-
-.horarium__band {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: stretch;
-  gap: .55rem;
-}
-
-.horarium__celest {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  font-size: 22px;
-  line-height: 1;
-  transition: color .35s, opacity .35s, transform .35s;
-}
-.horarium__celest svg { display: block; }
-.horarium__celest--sun  { color: var(--gold-bright); }
-.horarium__celest--moon { color: var(--ink-faint); opacity: .55; }
-
-/* As night descends the sun fades and the moon rises into blood. */
-.horarium__band[data-count="4"] .horarium__celest--sun,
-.horarium__band[data-count="5"] .horarium__celest--sun,
-.horarium__band[data-full="true"] .horarium__celest--sun {
-  color: var(--gold-deep);
-  opacity: .35;
-}
-.horarium__band[data-count="4"] .horarium__celest--moon { opacity: .8; }
-.horarium__band[data-count="5"] .horarium__celest--moon {
+  border: 1px solid var(--ink-faint);
   color: var(--ink);
-  opacity: 1;
-}
-.horarium__band[data-full="true"] .horarium__celest--moon {
-  color: var(--blood);
-  opacity: 1;
-  filter: drop-shadow(0 0 6px rgba(168, 40, 31, .35));
-}
-
-.horarium__hours {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  position: relative;
-  border: 1px solid rgba(122, 90, 40, .55);
+  font: inherit;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  padding: .2rem .55rem;
   border-radius: 2px;
-  padding: 1px;
-  /* A faint preview of the full day-to-night arc sits behind the cells, so
-     the band suggests its theme even when wholly unmarked. */
-  background:
-    linear-gradient(90deg,
-      rgba(232, 201, 122, .18) 0%,
-      rgba(212, 179, 92, .14) 17%,
-      rgba(191, 154, 74, .12) 34%,
-      rgba(126, 94, 58, .16) 51%,
-      rgba(90, 63, 37, .18) 68%,
-      rgba(42, 20, 8, .25) 100%),
-    linear-gradient(180deg, rgba(243, 233, 207, .9), rgba(201, 184, 140, .45));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .35),
-    inset 0 -1px 0 rgba(42, 20, 8, .12),
-    0 1px 2px rgba(42, 20, 8, .18);
-}
-
-.horarium__hour {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: 0;
-  border-right: 1px dashed rgba(122, 90, 40, .3);
-  padding: 0;
-  margin: 0;
-  font: inherit;
+  min-width: 2.1rem;
+  min-height: 32px;
+  line-height: 1.1;
   cursor: pointer;
-  position: relative;
-  z-index: 1;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-faint);
-  transition: background .22s, color .22s, transform .08s;
+  transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
 }
-.horarium__hour:last-child { border-right: 0; }
-.horarium__hour:active { transform: scale(.97); }
-.horarium__hour:hover {
-  background: rgba(255, 255, 255, .14);
-  color: var(--ink);
+.time__btn:hover { border-color: var(--ink-soft); }
+.time__btn:active { transform: translateY(1px); }
+
+/* Chapter row — partial / done show gilded; selected wins with ink fill. */
+.time__btn--chapter[data-state="partial"] {
+  border-color: var(--gold-deep);
+  color: var(--gold-deep);
+}
+.time__btn--chapter[data-state="done"] {
+  background: rgba(168, 133, 63, .55);
+  border-color: var(--gold-deep);
+  color: var(--vellum-hi);
+}
+.time__btn--chapter[aria-selected="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--vellum-hi);
+  box-shadow: 0 0 0 2px rgba(168, 133, 63, .35);
 }
 
-.horarium__hour-glyph {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: .92rem;
-  letter-spacing: .02em;
-  line-height: 1;
-  pointer-events: none;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, .25);
+/* Day row — blood fill while sealed; current day gets a faint halo. */
+.time__btn--day[data-filled="true"] {
+  background: var(--blood);
+  border-color: var(--blood-deep);
+  color: var(--vellum-hi);
 }
-
-/* Filled horæ wear their tier. Day-tier glyphs read in ink; dusk-and-after
-   flips to vellum. */
-.horarium__hour[data-filled="true"][data-tier="0"] {
-  background: linear-gradient(180deg, #efd388, #d9b75e);
-  color: #2a1408;
-}
-.horarium__hour[data-filled="true"][data-tier="1"] {
-  background: linear-gradient(180deg, #d9b75e, #c19f4d);
-  color: #2a1408;
-}
-.horarium__hour[data-filled="true"][data-tier="2"] {
-  background: linear-gradient(180deg, #c19f4d, #a4853c);
-  color: #2a1408;
-}
-.horarium__hour[data-filled="true"][data-tier="3"] {
-  background: linear-gradient(180deg, #8a6840, #604325);
-  color: #f3e9cf;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, .4);
-}
-.horarium__hour[data-filled="true"][data-tier="4"] {
-  background: linear-gradient(180deg, #5a3f25, #3a2515);
-  color: #f3e9cf;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, .5);
-}
-.horarium__hour[data-filled="true"][data-tier="5"] {
-  background: linear-gradient(180deg, #2a1408, #110608);
-  color: #d8b765;
-  text-shadow: 0 0 6px rgba(168, 40, 31, .55);
-}
-
-/* The currently-occupied hour gets a bright gold rim plus a small gnomon
-   arrow rising beneath the band — like a sundial's shadow tip resting on
-   the hour line. */
-.horarium__hour[data-current="true"] {
-  box-shadow:
-    inset 0 0 0 1.5px rgba(232, 201, 122, 1),
-    inset 0 0 10px rgba(216, 183, 101, .55);
-  z-index: 2;
-}
-.horarium__hour[data-current="true"]::before {
-  content: "";
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 4px solid var(--gold-bright);
-  filter: drop-shadow(0 1px 1px rgba(42, 20, 8, .35));
-}
-
-/* When the day has wholly elapsed, the final night hour gains a quiet
-   star-shimmer above the meridian. */
-.horarium__hour[data-tier="5"][data-filled="true"]::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #d8b765;
-  box-shadow: 0 0 8px rgba(216, 183, 101, .8);
-  transform: translate(-50%, -50%);
-  opacity: .9;
-  animation: horarium-star 2.8s ease-in-out infinite;
-}
-@keyframes horarium-star {
-  0%, 100% { opacity: .25; transform: translate(-50%, -50%) scale(.9); }
-  50%      { opacity: .95; transform: translate(-50%, -50%) scale(1.25); }
-}
-
-/* iOS Safari focus ring */
-.horarium__hour:focus-visible,
-.horarium__chapter:focus-visible {
-  outline: 1px solid var(--blood);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .horarium__hour[data-tier="5"][data-filled="true"]::after { animation: none; }
+.time__btn--day[data-current="true"] {
+  box-shadow: 0 0 0 2px rgba(122, 26, 23, .22);
 }
 
 /* =========================================================================
@@ -3272,12 +3050,29 @@ button, [role="tab"], .ledger__check {
    By-location view — chip selector at the top of the Locación tab
    ========================================================================= */
 
+/* Each filter row leads with a small SC label (e.g. "locación", "capítulo")
+   followed by tight chips. The row sits on a faint vellum stripe and a
+   left rule so it reads as a filter control, distinct from content. */
 .by-loc__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: .4rem;
-  margin: 0 0 1rem;
-  padding: 0;
+  align-items: center;
+  gap: .2rem .25rem;
+  margin: 0 0 .25rem;
+  padding: .2rem .45rem .25rem .4rem;
+  border-left: 2px solid var(--gold-deep);
+  background: linear-gradient(90deg, rgba(168,133,63,.07), transparent 80%);
+  border-radius: 0 2px 2px 0;
+}
+.by-loc__chips-label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .56rem;
+  letter-spacing: .24em;
+  text-transform: lowercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  margin-right: .2rem;
+  align-self: center;
 }
 .by-loc__chip {
   appearance: none;
@@ -3285,13 +3080,14 @@ button, [role="tab"], .ledger__check {
   border: 1px solid var(--ink-faint);
   color: var(--ink);
   font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1rem;
+  font-size: .82rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: .04em;
-  padding: .3rem .6rem;
+  padding: .1rem .45rem;
   border-radius: 2px;
-  min-width: 2.6rem;
-  min-height: 36px;
+  min-width: 1.6rem;
+  min-height: 26px;
+  line-height: 1.1;
   cursor: pointer;
   transition: background .15s, color .15s, border-color .15s;
 }
@@ -3301,48 +3097,71 @@ button, [role="tab"], .ledger__check {
   border-color: var(--blood-deep);
   color: #f7e8bf;
 }
+.by-loc__chip--all {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+}
 
-/* Sits between the chips and the first ledger section. Holds the quick-add
-   input and the "hide completed" toggle on the same row when there's room,
-   stacking on narrow screens. */
+/* Sits between the chip filter rows and the first ledger section, holding
+   the location quick-add input. */
 .by-loc__controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .5rem;
-  margin: 0 0 1rem;
+  margin: .5rem 0 1rem;
 }
 .by-loc__controls .loc__add { flex: 1 1 12rem; min-width: 10rem; }
-.by-loc__hide-done {
-  appearance: none;
-  background: transparent;
-  border: 1px solid var(--ink-faint);
-  color: var(--ink-soft);
-  font: inherit;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .72rem;
-  letter-spacing: .14em;
-  text-transform: lowercase;
-  padding: .35rem .65rem;
-  border-radius: 2px;
-  min-height: 36px;
+
+/* Collapsible done-block at the foot of each ledger. The summary row is a
+   compact line — small label, count badge, manuscript-style chevron. */
+.ledger__body { display: block; }
+.ledger__done {
+  margin: .35rem 0 0;
+  border-top: 1px dashed rgba(122, 90, 40, .28);
+}
+.ledger__done > summary {
+  list-style: none;
   cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
-  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  padding: .35rem .15rem .3rem;
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .62rem;
+  letter-spacing: .18em;
+  text-transform: lowercase;
+  color: var(--ink-soft);
+  user-select: none;
+  transition: color .15s;
 }
-.by-loc__hide-done::before {
-  content: "○ ";
+.ledger__done > summary::-webkit-details-marker { display: none; }
+.ledger__done > summary::before {
+  content: "▸";
+  font-size: .8em;
   color: var(--ink-faint);
+  transition: transform .18s;
+  display: inline-block;
 }
-.by-loc__hide-done[aria-pressed="true"] {
-  border-color: var(--blood);
-  color: var(--blood);
-  background: rgba(122,26,23,.06);
+.ledger__done[open] > summary::before { transform: rotate(90deg); }
+.ledger__done > summary:hover { color: var(--ink); }
+.ledger__done-label { flex: 1 1 auto; }
+.ledger__done-count {
+  font-variant-numeric: tabular-nums;
+  font-size: .68rem;
+  letter-spacing: .04em;
+  color: var(--ink-faint);
+  padding: 1px 6px;
+  border: 1px solid rgba(122, 90, 40, .35);
+  border-radius: 2px;
+  background: rgba(232,220,192,.55);
 }
-.by-loc__hide-done[aria-pressed="true"]::before {
-  content: "● ";
-  color: var(--blood);
-}
+/* Wash the contents of the open block a touch so they read as
+   archived, not foreground. */
+.ledger__done[open] .ledger__list,
+.ledger__done[open] .ledger__list--notes { opacity: .82; }
 
 /* =========================================================================
    Recuerdos del Secreto — per-active-hero Achievement sheet at the foot

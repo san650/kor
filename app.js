@@ -1005,7 +1005,39 @@ const renderLocationsSection = (locations, stones) => {
    ------------------------------------------------------------------------- */
 
 let selectedLocation = null;
-let hideCompleted = false;
+// Chapter filter for the Andanzas ledgers. `null` means all chapters
+// (and entries without a recorded chapter) pass through. Otherwise
+// only entries whose `chapter` matches survive the filter. UI-local
+// only — not persisted across reloads, since it's a transient view
+// preference, not session state.
+let filterChapter = null;
+
+// Split a ledger's items into open vs. completed, render each through
+// `makeRows`, and wrap the completed entries inside a `<details>` that
+// is collapsed by default. Returns null when both groups are empty
+// (matches the prior "empty section" behaviour of renderRows).
+const renderLedgerBody = (items, doneLabel, makeRows) => {
+  const open = items.filter((it) => !it.done);
+  const done = items.filter((it) =>  it.done);
+  const wrap = el('div', { class: 'ledger__body' });
+  const openList = makeRows(open);
+  if (openList) wrap.append(openList);
+  if (done.length > 0) {
+    const doneList = makeRows(done);
+    if (doneList) {
+      wrap.append(
+        el('details', { class: 'ledger__done' },
+          el('summary', { class: 'ledger__done-summary' },
+            el('span', { class: 'ledger__done-label' }, doneLabel),
+            el('span', { class: 'ledger__done-count' }, String(done.length)),
+          ),
+          doneList,
+        ),
+      );
+    }
+  }
+  return wrap.children.length ? wrap : null;
+};
 
 // Locations can have an alternate form (e.g. "103b" replaces "103").
 // Strip the trailing alpha suffix to get the canonical key so "103" and
@@ -1039,16 +1071,37 @@ const renderByLocation = (doc) => {
     }
   }
 
+  // Chapter chip strip — "todos" + 1..10. Independent of the location
+  // filter; both predicates must pass for an item to render.
+  const capChips = el('div', { class: 'by-loc__chips by-loc__chips--caps', role: 'group', 'aria-label': 'Filtrar por capítulo' });
+  capChips.append(el('span', { class: 'by-loc__chips-label' }, 'capítulo'));
+  capChips.append(el('button', {
+    type: 'button',
+    class: 'by-loc__chip by-loc__chip--all',
+    'aria-pressed': filterChapter == null ? 'true' : 'false',
+    onclick: () => { filterChapter = null; render(); },
+  }, 'todos'));
+  for (let c = 1; c <= 10; c++) {
+    capChips.append(el('button', {
+      type: 'button',
+      class: 'by-loc__chip',
+      'aria-pressed': c === filterChapter ? 'true' : 'false',
+      onclick: () => { filterChapter = c; render(); },
+    }, String(c)));
+  }
+  scene.append(capChips);
+
   // Selector — "Todas" chip first, then every revealed location. Chips
   // light up by *base* equality so "103" and "103b" both visually
   // activate when either is selected (they share a filter group).
-  const chips = el('div', { class: 'by-loc__chips' });
+  const chips = el('div', { class: 'by-loc__chips', role: 'group', 'aria-label': 'Filtrar por locación' });
+  chips.append(el('span', { class: 'by-loc__chips-label' }, 'locación'));
   chips.append(el('button', {
     type: 'button',
     class: 'by-loc__chip by-loc__chip--all',
     'aria-pressed': selectedLocation == null ? 'true' : 'false',
     onclick: () => { selectedLocation = null; render(); },
-  }, 'Todas'));
+  }, 'todas'));
   for (const loc of locations) {
     const isSel = selectedLocation != null
       && baseLoc(loc.location) === baseLoc(selectedLocation);
@@ -1061,18 +1114,7 @@ const renderByLocation = (doc) => {
   }
   scene.append(chips);
 
-  // Filter strip + quick-add — the toggle hides every completed entry across
-  // all sections on this screen.
-  scene.append(el('div', { class: 'by-loc__controls' },
-    renderLocationAddInput(doc.locations || []),
-    el('button', {
-      type: 'button',
-      class: 'by-loc__hide-done',
-      'aria-pressed': hideCompleted ? 'true' : 'false',
-      onclick: () => { hideCompleted = !hideCompleted; render(); },
-      title: 'Ocultar notas, misiones y compañeros cumplidos',
-    }, 'ocultar cumplidas'),
-  ));
+
 
   const loc = selectedLocation;
   const showAll = loc == null;
@@ -1080,8 +1122,8 @@ const renderByLocation = (doc) => {
   // tagged "103b" matches when the user selects "103", and vice versa.
   const locBase = showAll ? '' : baseLoc(loc);
   const matchesLoc = (it) => showAll || baseLoc((it.location || '').trim()) === locBase;
-  const matchesDone = (it) => !hideCompleted || !it.done;
-  const matches = (it) => matchesLoc(it) && matchesDone(it);
+  const matchesChapter = (it) => filterChapter == null || it.chapter === filterChapter;
+  const matches = (it) => matchesLoc(it) && matchesChapter(it);
 
   // Filter each ledger to items whose location matches the selection
   // (or all items when "Todas" is active), and drop completed entries
@@ -1134,10 +1176,12 @@ const renderByLocation = (doc) => {
         };
         store.dispatch(makeCommand(`ADD_${prefix}`, { to: it, index: allLength }));
       },
-      body: renderTextLocRows(items, prefix, (it) => askConfirm({
-        title: removeTitle,
-        body: it.text ? `«${it.text}» se perderá.` : 'La entrada se perderá.',
-      }), editTitle),
+      body: renderLedgerBody(items, 'cumplidos', (subset) =>
+        renderTextLocRows(subset, prefix, (it) => askConfirm({
+          title: removeTitle,
+          body: it.text ? `«${it.text}» se perderá.` : 'La entrada se perderá.',
+        }), editTitle),
+      ),
     });
 
   scene.append(renderLedgerSection({
@@ -1162,10 +1206,12 @@ const renderByLocation = (doc) => {
       };
       store.dispatch(makeCommand('ADD_SIDE_QUEST', { to: it, index: allSideQuests.length }));
     },
-    body: renderChecklistRows(sideQuests, 'SIDE_QUEST', (it) => askConfirm({
-      title: '¿Borrar la misión?',
-      body: `«${it.title}» será arrancada del diario.`,
-    }), 'Editar misión'),
+    body: renderLedgerBody(sideQuests, 'cumplidas', (subset) =>
+      renderChecklistRows(subset, 'SIDE_QUEST', (it) => askConfirm({
+        title: '¿Borrar la misión?',
+        body: `«${it.title}» será arrancada del diario.`,
+      }), 'Editar misión'),
+    ),
   }));
 
   scene.append(renderLedgerSection({
@@ -1189,7 +1235,7 @@ const renderByLocation = (doc) => {
       };
       store.dispatch(makeCommand('ADD_NOTE', { to: n, index: allNotes.length }));
     },
-    body: renderNoteRows(notes),
+    body: renderLedgerBody(notes, 'cumplidas', (subset) => renderNoteRows(subset)),
   }));
 
   scene.append(sharedLocSection({
@@ -1343,11 +1389,12 @@ const renderAchievementsSection = (doc) => {
 };
 
 /* -------------------------------------------------------------------------
-   Transcurso del tiempo — el horarium
+   Transcurso del tiempo — flat chapter + day selector.
 
-   A compact horizontal sundial: day arcs left-to-right from a gilded sun
-   through six horæ into a darkening moon. The 10 chapters live on a thin
-   strip above, each chapter a single pip with its own state mark.
+   Two rows of plain buttons: first picks the active chapter (1–10), the
+   second picks the current day within that chapter (I–VI). Tapping a day
+   updates the stored count for the selected chapter; tapping the same
+   day again retreats by one (so the buttons double as inc / dec).
    ------------------------------------------------------------------------- */
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI'];
@@ -1360,120 +1407,66 @@ const setChapterTime = (chapter, from, to) => {
   store.dispatch(makeCommand('SET_CHAPTER_TIME', { chapter, from, to: clamped }));
 };
 
-const renderHorariumChapters = (selected, counts) => {
-  const strip = el('div', {
-    class: 'horarium__chapters',
-    role: 'tablist',
-    'aria-label': 'Elegir capítulo',
-  });
-
-  for (let i = 0; i < CHAPTER_COUNT; i++) {
-    const count = counts[i] || 0;
-    const isSelected = i === selected;
-    const isComplete = count >= TIME_WHEEL_SEGMENTS;
-    const state = isComplete ? 'done' : count > 0 ? 'partial' : 'empty';
-
-    strip.append(el('button', {
-      type: 'button',
-      class: 'horarium__chapter',
-      role: 'tab',
-      'aria-selected': isSelected ? 'true' : 'false',
-      'aria-label': `Capítulo ${i + 1}, ${count} de ${TIME_WHEEL_SEGMENTS}`,
-      dataset: { selected: isSelected ? 'true' : 'false', state },
-      onclick: () => {
-        if (i === selected) return;
-        store.dispatch(makeCommand('SET_SELECTED_CHAPTER', { from: selected, to: i }));
-      },
-    },
-      el('span', { class: 'horarium__chapter-num' }, String(i + 1)),
-      el('span', { class: 'horarium__chapter-mark', 'aria-hidden': 'true' }),
-    ));
-  }
-
-  return strip;
-};
-
-const renderHorariumBand = (chapter, count) => {
-  const hours = el('div', {
-    class: 'horarium__hours',
-    role: 'group',
-    'aria-label': 'Marcar las horas',
-  });
-
-  for (let i = 0; i < TIME_WHEEL_SEGMENTS; i++) {
-    const isFilled = i < count;
-    const isCurrent = isFilled && i === count - 1;
-    // Tap a filled hour to retreat to its predecessor; any other jumps the
-    // marker straight to that position. Mirrors the old wedge behaviour.
-    hours.append(el('button', {
-      type: 'button',
-      class: 'horarium__hour',
-      dataset: {
-        tier: String(i),
-        filled: isFilled ? 'true' : 'false',
-        current: isCurrent ? 'true' : 'false',
-      },
-      'aria-pressed': isFilled ? 'true' : 'false',
-      'aria-label': `Marcar ${ROMAN_NUMERALS[i]} (${i + 1} de ${TIME_WHEEL_SEGMENTS})`,
-      onclick: () => setChapterTime(chapter, count, count === i + 1 ? i : i + 1),
-    },
-      el('span', { class: 'horarium__hour-glyph' }, ROMAN_NUMERALS[i]),
-    ));
-  }
-
-  const full = count >= TIME_WHEEL_SEGMENTS;
-
-  return el('div', {
-    class: 'horarium__band',
-    dataset: { full: full ? 'true' : 'false', count: String(count) },
-    'aria-label': `Capítulo ${chapter + 1}, ${count} de ${TIME_WHEEL_SEGMENTS}`,
-  },
-    el('span', { class: 'horarium__celest horarium__celest--sun', 'aria-hidden': 'true' },
-      icon('sun')),
-    hours,
-    el('span', { class: 'horarium__celest horarium__celest--moon', 'aria-hidden': 'true' },
-      icon('moon')),
-  );
-};
-
 const renderTimeTrackers = (doc) => {
   const counts = Array.isArray(doc.chapterTime) ? doc.chapterTime : [];
   const selected = Math.max(0, Math.min(CHAPTER_COUNT - 1, doc.selectedChapter ?? 0));
   const count = counts[selected] || 0;
 
-  return el('div', { class: 'horarium' },
-    renderHorariumChapters(selected, counts),
-    renderHorariumBand(selected, count),
-  );
-};
+  const chapterRow = el('div', { class: 'time__row', role: 'tablist', 'aria-label': 'Capítulo' });
+  for (let i = 0; i < CHAPTER_COUNT; i++) {
+    const c = counts[i] || 0;
+    const isSelected = i === selected;
+    const state = c >= TIME_WHEEL_SEGMENTS ? 'done' : c > 0 ? 'partial' : 'empty';
+    chapterRow.append(el('button', {
+      type: 'button',
+      class: 'time__btn time__btn--chapter',
+      role: 'tab',
+      'aria-selected': isSelected ? 'true' : 'false',
+      'aria-label': `Capítulo ${i + 1}, ${c} de ${TIME_WHEEL_SEGMENTS}`,
+      dataset: { state },
+      onclick: () => {
+        if (i === selected) return;
+        store.dispatch(makeCommand('SET_SELECTED_CHAPTER', { from: selected, to: i }));
+      },
+    }, String(i + 1)));
+  }
 
-// The horarium gets its own ledger head — the title on the left, and the
-// active chapter's name on the right (where the add-button usually sits) so
-// the band beneath needs no caption of its own.
-const renderHorariumSection = (doc) => {
-  const counts = Array.isArray(doc.chapterTime) ? doc.chapterTime : [];
-  const selected = Math.max(0, Math.min(CHAPTER_COUNT - 1, doc.selectedChapter ?? 0));
-  const count = counts[selected] || 0;
-  const full = count >= TIME_WHEEL_SEGMENTS;
+  const dayRow = el('div', { class: 'time__row', role: 'group', 'aria-label': 'Día' });
+  for (let d = 0; d < TIME_WHEEL_SEGMENTS; d++) {
+    const isFilled = d < count;
+    const isCurrent = isFilled && d === count - 1;
+    dayRow.append(el('button', {
+      type: 'button',
+      class: 'time__btn time__btn--day',
+      dataset: { filled: isFilled ? 'true' : 'false', current: isCurrent ? 'true' : 'false' },
+      'aria-pressed': isFilled ? 'true' : 'false',
+      'aria-label': `Día ${ROMAN_NUMERALS[d]} (${d + 1} de ${TIME_WHEEL_SEGMENTS})`,
+      // Same gesture as the old horarium hours: tap a day to advance to
+      // it; tap the currently-active day to retreat one step.
+      onclick: () => setChapterTime(selected, count, count === d + 1 ? d : d + 1),
+    }, ROMAN_NUMERALS[d]));
+  }
 
-  const head = el('header', { class: 'ledger__head horarium__head' },
-    el('h3', { class: 'ledger__title' }, 'Transcurso del tiempo'),
-    el('span', { class: 'ledger__rule', 'aria-hidden': 'true' }),
-    el('span', {
-      class: 'horarium__chapter-label',
-      dataset: { full: full ? 'true' : 'false' },
-      'aria-live': 'polite',
-    },
-      el('span', { class: 'horarium__chapter-label-cap' }, 'cap.'),
-      el('span', { class: 'horarium__chapter-label-num' }, String(selected + 1)),
+  return el('div', { class: 'time' },
+    el('div', { class: 'time__group' },
+      el('span', { class: 'time__label' }, 'capítulo'),
+      chapterRow,
+    ),
+    el('div', { class: 'time__group' },
+      el('span', { class: 'time__label' }, 'día'),
+      dayRow,
     ),
   );
+};
 
-  return el('section', { class: 'ledger horarium-section' },
-    head,
+const renderHorariumSection = (doc) =>
+  el('section', { class: 'ledger horarium-section' },
+    el('header', { class: 'ledger__head' },
+      el('h3', { class: 'ledger__title' }, 'Transcurso del tiempo'),
+      el('span', { class: 'ledger__rule', 'aria-hidden': 'true' }),
+    ),
     renderTimeTrackers(doc),
   );
-};
 
 /* -------------------------------------------------------------------------
    Estados — la Hoja de Estados oficial
@@ -2333,9 +2326,19 @@ const renderHeroItemsSection = (heroIdx, heroName) => {
   });
 };
 
+// Hero idxs whose `.hero` card has already played the intro slide-in
+// once this page load. The full-tree renderer rebuilds the DOM on every
+// dispatch (including dropdown changes), so without this gate the
+// slide-in fires on every keystroke / select change — visible as a
+// jarring screen flash. Mirrors `animatedSecretSheets` for the
+// Recuerdos section.
+const animatedHeroCards = new Set();
+
 const renderPlayerCard = (idx, orderIndex = 0) => {
   const characterName = CHARACTER_NAMES[idx];
   const key = heroKey(idx);
+  const skipAnim = animatedHeroCards.has(idx);
+  animatedHeroCards.add(idx);
 
   const cell = (statKey, label, short, opts = {}) =>
     el('label', { class: 'hero__cell' },
@@ -2358,7 +2361,7 @@ const renderPlayerCard = (idx, orderIndex = 0) => {
     );
 
   return el('article', {
-    class: 'hero',
+    class: 'hero' + (skipAnim ? ' hero--mounted' : ''),
     dataset: { hero: key },
     style: `--hero-i: ${orderIndex}`,
   },
