@@ -93,6 +93,20 @@ export const COMMANDS = {
     revert: (s, p) => replaceField(s, 'selectedChapter', p.from),
     coalesceKey: () => 'selectedChapter',
   },
+
+  TOGGLE_ACHIEVEMENT: {
+    apply: (s, p) => writeAchievement(s, p.key, p.to),
+    revert: (s, p) => writeAchievement(s, p.key, p.from),
+    coalesceKey: (p) => `achievement:${p.key}`,
+  },
+};
+
+const writeAchievement = (state, key, sealed) => {
+  const doc = docFrom(state);
+  const next = { ...(doc.achievements || {}) };
+  if (sealed) next[key] = true;
+  else delete next[key];
+  state.doc = { ...doc, achievements: next };
 };
 
 const writeChapterTime = (state, chapter, value) => {

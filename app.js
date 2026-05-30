@@ -1,6 +1,10 @@
 import { store } from './store.js';
 import { makeCommand } from './commands.js';
 import { STATUSES, stripAccents } from './statuses.js';
+import {
+  achievementKey,
+  sheetForHero,
+} from './achievements.js';
 
 /* -------------------------------------------------------------------------
    DOM helpers
@@ -1003,6 +1007,14 @@ const renderLocationsSection = (locations, stones) => {
 let selectedLocation = null;
 let hideCompleted = false;
 
+// Locations can have an alternate form (e.g. "103b" replaces "103").
+// Strip the trailing alpha suffix to get the canonical key so "103" and
+// "103b" share a filter bucket. Tolerates whitespace, case, and missing
+// suffix. Returns "" for empty input so undefined locations don't all
+// collapse into one group with each other — `matchesLoc` already guards
+// the empty case explicitly via `showAll`.
+const baseLoc = (s) => (s || '').trim().toLowerCase().replace(/[a-z]+$/i, '');
+
 // `selectedLocation === null` means the "Todas" pseudo-chip is active and
 // every ledger renders unfiltered.
 const renderByLocation = (doc) => {
@@ -1015,14 +1027,21 @@ const renderByLocation = (doc) => {
       (a.location || '').localeCompare(b.location || '', 'es', { numeric: true, sensitivity: 'base' }),
     );
 
-  // The selected chip clamps to a still-existing code. If it was removed,
-  // fall through to "Todas" rather than silently jumping the user to an
-  // unrelated location.
-  if (selectedLocation != null && !locations.some((l) => l.location === selectedLocation)) {
-    selectedLocation = null;
+  // The selected chip clamps to a still-existing code. If the original
+  // chip was replaced by an alternate (e.g. "103" → "103b"), snap to that
+  // alternate so the visual selection stays consistent with the filter.
+  // If nothing in the group remains, fall through to "Todas".
+  if (selectedLocation != null) {
+    const exact = locations.find((l) => l.location === selectedLocation);
+    if (!exact) {
+      const sibling = locations.find((l) => baseLoc(l.location) === baseLoc(selectedLocation));
+      selectedLocation = sibling ? sibling.location : null;
+    }
   }
 
-  // Selector — "Todas" chip first, then every revealed location.
+  // Selector — "Todas" chip first, then every revealed location. Chips
+  // light up by *base* equality so "103" and "103b" both visually
+  // activate when either is selected (they share a filter group).
   const chips = el('div', { class: 'by-loc__chips' });
   chips.append(el('button', {
     type: 'button',
@@ -1031,7 +1050,8 @@ const renderByLocation = (doc) => {
     onclick: () => { selectedLocation = null; render(); },
   }, 'Todas'));
   for (const loc of locations) {
-    const isSel = loc.location === selectedLocation;
+    const isSel = selectedLocation != null
+      && baseLoc(loc.location) === baseLoc(selectedLocation);
     chips.append(el('button', {
       type: 'button',
       class: 'by-loc__chip',
@@ -1056,7 +1076,10 @@ const renderByLocation = (doc) => {
 
   const loc = selectedLocation;
   const showAll = loc == null;
-  const matchesLoc = (it) => showAll || (it.location || '').trim() === loc;
+  // Filter by *base* equality so alternate forms group together: an item
+  // tagged "103b" matches when the user selects "103", and vice versa.
+  const locBase = showAll ? '' : baseLoc(loc);
+  const matchesLoc = (it) => showAll || baseLoc((it.location || '').trim()) === locBase;
   const matchesDone = (it) => !hideCompleted || !it.done;
   const matches = (it) => matchesLoc(it) && matchesDone(it);
 
@@ -1067,9 +1090,22 @@ const renderByLocation = (doc) => {
   const allNotes      = doc.notes      || [];
   const allPartners   = doc.partners   || [];
 
-  const sideQuests = allSideQuests.filter(matches);
-  const notes      = allNotes.filter(matches);
-  const partners   = allPartners.filter(matches);
+  // Sort the filtered ledger by insertion order descending (newest first),
+  // with completed entries pushed to the bottom. Insertion order is the
+  // item's index in the underlying doc array — `newId()` doesn't carry a
+  // sortable timestamp, but the store always appends new items at the end.
+  const sortLedger = (filtered, source) => {
+    const idx = new Map(source.map((it, i) => [it.id, i]));
+    return filtered.slice().sort((a, b) => {
+      const ad = !!a.done, bd = !!b.done;
+      if (ad !== bd) return ad ? 1 : -1;
+      return (idx.get(b.id) ?? 0) - (idx.get(a.id) ?? 0);
+    });
+  };
+
+  const sideQuests = sortLedger(allSideQuests.filter(matches), allSideQuests);
+  const notes      = sortLedger(allNotes.filter(matches),      allNotes);
+  const partners   = sortLedger(allPartners.filter(matches),   allPartners);
 
   // Per-section add handler. When a location is selected we pre-fill it
   // in the modal; in "Todas" mode the modal opens with an empty location
@@ -1169,7 +1205,141 @@ const renderByLocation = (doc) => {
     editTitle: 'Editar compañero',
   }));
 
+  // Recuerdos del Secreto — per-active-hero achievement sheet. Lives at
+  // the bottom of Andanzas so it doesn't compete with the per-location
+  // ledgers above; the section is hidden entirely when no hero is in play.
+  scene.append(renderAchievementsSection(doc));
+
   return scene;
+};
+
+/* -------------------------------------------------------------------------
+   Recuerdos del Secreto — the per-character Achievement sheet pulled
+   from the official KOR PDF. Each active hero owns 3 secret cards × 3
+   recuerdos = 9 sealable checkboxes. The map of sealed entries lives in
+   `doc.achievements` and toggles through TOGGLE_ACHIEVEMENT.
+   ------------------------------------------------------------------------- */
+
+// Strip the redundant "Durante el/la/un/una" prefix from a momento so the
+// inline tag stays short. Falls through unchanged for shapes we don't know
+// (e.g. "En cualquier momento" → "cualquier momento").
+const MOMENTO_PREFIXES = [
+  'Durante el ', 'Durante la ', 'Durante los ', 'Durante las ',
+  'Durante un ', 'Durante una ', 'En ',
+];
+const shortMomento = (m) => {
+  for (const p of MOMENTO_PREFIXES) if (m.startsWith(p)) return m.slice(p.length);
+  return m;
+};
+
+const renderRecuerdoRow = (heroIdx, carta, r, sealed) => {
+  const key = achievementKey(heroIdx, carta, r.n);
+  const label = `Recuerdo ${r.n}`;
+  return el('li', {
+    class: 'recuerdo',
+    dataset: { sealed: sealed ? 'true' : 'false' },
+  },
+    el('button', {
+      type: 'button',
+      class: 'recuerdo__check',
+      'aria-pressed': sealed ? 'true' : 'false',
+      'aria-label': sealed ? `${label}, marcar como pendiente` : `${label}, marcar como cumplido`,
+      onclick: () => store.dispatch(makeCommand('TOGGLE_ACHIEVEMENT', {
+        key, from: sealed, to: !sealed,
+      })),
+    }, sealed ? icon('check') : null),
+    el('span', { class: 'recuerdo__body' },
+      el('span', { class: 'recuerdo__label' }, label),
+      el('span', { class: 'recuerdo__condicion' }, r.condicion),
+      el('span', { class: 'recuerdo__momento' }, shortMomento(r.momento)),
+    ),
+  );
+};
+
+const renderSecretCard = (heroName, heroIdx, card, achievements) => {
+  const sealedCount = card.recuerdos.reduce(
+    (n, r) => n + (achievements[achievementKey(heroIdx, card.carta, r.n)] ? 1 : 0),
+    0,
+  );
+  const total = card.recuerdos.length;
+  const complete = sealedCount === total;
+  const list = el('ul', { class: 'recuerdo__list' });
+  for (const r of card.recuerdos) {
+    const sealed = !!achievements[achievementKey(heroIdx, card.carta, r.n)];
+    list.append(renderRecuerdoRow(heroIdx, card.carta, r, sealed));
+  }
+  return el('section', {
+    class: 'secret-card',
+    dataset: { complete: complete ? 'true' : 'false' },
+  },
+    el('header', { class: 'secret-card__head',
+      'aria-label': `Carta Secreta ${card.carta}, ${sealedCount} de ${total} cumplidos${complete ? ' (carta cumplida)' : ''}`,
+    },
+      el('span', { class: 'secret-card__num' }, `Carta Secreta ${card.carta}`),
+      el('span', { class: 'secret-card__rule', 'aria-hidden': 'true' }),
+      complete
+        ? el('span', { class: 'secret-card__seal', 'aria-hidden': 'true' }, icon('check'))
+        : el('span', { class: 'secret-card__count', 'aria-hidden': 'true' },
+            String(sealedCount), el('span', { class: 'secret-card__count-sep' }, '/'), String(total)),
+    ),
+    list,
+  );
+};
+
+// Hero idxs that have already played the intro slide-in once this page
+// load. The full-tree renderer rebuilds the DOM on every dispatch, so
+// without this gate the slide-in would re-fire every time a checkbox
+// toggles — distracting. The Set is module-local, intentionally not
+// cleared on import/reset (a fresh page load is the natural reset).
+const animatedSecretSheets = new Set();
+
+const renderHeroAchievements = (sheet, achievements, orderIndex) => {
+  const skipAnim = animatedSecretSheets.has(sheet.heroIdx);
+  animatedSecretSheets.add(sheet.heroIdx);
+  return el('article', {
+    class: 'secret-sheet' + (skipAnim ? ' secret-sheet--mounted' : ''),
+    dataset: { hero: heroKey(sheet.heroIdx) },
+    style: `--hero-i: ${orderIndex}`,
+  },
+    el('header', { class: 'secret-sheet__head' },
+      el('h4', { class: 'secret-sheet__name' }, sheet.name),
+      el('span', { class: 'secret-sheet__secret', title: 'Secreto' },
+        '«', sheet.secret, '»',
+      ),
+    ),
+    el('div', { class: 'secret-sheet__cards' },
+      ...sheet.cards.map((c) => renderSecretCard(sheet.name, sheet.heroIdx, c, achievements)),
+    ),
+  );
+};
+
+const renderAchievementsSection = (doc) => {
+  const session = doc.session || {};
+  const selected = Array.isArray(session.selectedHeroes) ? session.selectedHeroes : [];
+  const achievements = doc.achievements || {};
+
+  const head = el('header', { class: 'ledger__head' },
+    el('h3', { class: 'ledger__title' }, 'Recuerdos del Secreto'),
+    el('span', { class: 'ledger__rule', 'aria-hidden': 'true' }),
+  );
+
+  const section = el('section', { class: 'ledger ledger--recuerdos' }, head);
+
+  if (selected.length === 0) {
+    section.append(el('p', { class: 'hush recuerdos__hush' },
+      'Convoca a un héroe en la Hoja de Juego para revelar sus Recuerdos.',
+    ));
+    return section;
+  }
+
+  const stack = el('div', { class: 'secret-sheet__stack' });
+  selected.forEach((heroIdx, i) => {
+    const sheet = sheetForHero(heroIdx);
+    if (!sheet) return;
+    stack.append(renderHeroAchievements(sheet, achievements, i));
+  });
+  section.append(stack);
+  return section;
 };
 
 /* -------------------------------------------------------------------------

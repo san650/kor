@@ -7,7 +7,7 @@ const VALID_TABS = new Set(['byLocation', 'statuses', 'heroes']);
 // Bump when the shape of `doc` changes. Add a matching `if (v < N)` step
 // inside `migrate()` below so older persisted docs (IndexedDB) and older
 // exported tomos (JSON files) upgrade on load / import.
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 const initialState = () => ({
   doc: {
@@ -26,6 +26,10 @@ const initialState = () => ({
     locations: [],
     guideStones: [],
     statuses: {},
+    // Map of achievementKey → true for every sealed Recuerdo. Absence
+    // means unsealed; we never store `false` so the object stays small
+    // and JSON imports stay forward-compatible.
+    achievements: {},
     chapterTime: Array.from({ length: 10 }, () => 0),
     selectedChapter: 0,
     session: defaultSession(),
@@ -110,8 +114,26 @@ const migrate = (rawDoc) => {
     delete next.perditionKings;
     v = 4;
   }
+  if (v < 5) {
+    // v4 → v5: introduce the `achievements` map (key → true) for the
+    // per-hero Recuerdos checklist on Andanzas. No data to migrate; we
+    // just ensure the field exists so the renderer can trust its shape.
+    if (!next.achievements || typeof next.achievements !== 'object') {
+      next.achievements = {};
+    }
+    v = 5;
+  }
   next.schemaVersion = CURRENT_SCHEMA_VERSION;
   return next;
+};
+
+const ensureAchievements = (raw) => {
+  if (!raw || typeof raw !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (v) out[k] = true;
+  }
+  return out;
 };
 
 // Defensive shape-filler for `session`. Not a migration — just ensures the
@@ -186,6 +208,7 @@ class Store {
             ...merged,
             tab: ensureTab(merged.tab),
             statuses: ensureStatuses(merged.statuses),
+            achievements: ensureAchievements(merged.achievements),
             chapterTime: ensureChapterTime(merged.chapterTime),
             session: ensureSession(merged.session),
           },
@@ -234,6 +257,7 @@ class Store {
         ...merged,
         tab: ensureTab(merged.tab),
         statuses: ensureStatuses(merged.statuses),
+        achievements: ensureAchievements(merged.achievements),
         chapterTime: ensureChapterTime(merged.chapterTime),
         session: ensureSession(merged.session),
       },

@@ -3344,3 +3344,303 @@ button, [role="tab"], .ledger__check {
   color: var(--blood);
 }
 
+/* =========================================================================
+   Recuerdos del Secreto — per-active-hero Achievement sheet at the foot
+   of Andanzas. Compact density: one row per Recuerdo (ledger-style ink
+   checkbox + momento chip + inline condition). Each Carta is one micro
+   block with a number-plaque head that turns gilded when all three
+   recuerdos are sealed.
+   ========================================================================= */
+
+.ledger--recuerdos {
+  margin-top: 1.2rem;
+  position: relative;
+}
+/* Short gilt hairline above the section heading sets it apart from the
+   per-location ledgers above without resorting to a heavy divider. */
+.ledger--recuerdos::before {
+  content: "";
+  display: block;
+  height: 1px;
+  width: 38%;
+  margin: 0 auto .65rem;
+  background: linear-gradient(90deg, transparent 0%, var(--gold-deep) 50%, transparent 100%);
+  opacity: .55;
+}
+
+.recuerdos__hush {
+  margin: .45rem 0 .1rem;
+  padding: .6rem .8rem;
+  text-align: center;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-style: italic;
+  font-size: .88rem;
+  color: var(--ink-faint);
+  border-top: 1px dashed rgba(122, 90, 40, .28);
+  border-bottom: 1px dashed rgba(122, 90, 40, .28);
+}
+
+.secret-sheet__stack {
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  margin-top: .35rem;
+}
+
+/* --- Hero sheet ------------------------------------------------------ */
+/* Per-character accent palette — re-declares the same tokens the Hoja de
+   Juego uses on `.hero` so the Recuerdos section works even when the
+   gamesheet isn't rendered. */
+.secret-sheet {
+  --hero-accent: var(--gold);
+  --hero-accent-deep: var(--gold-deep);
+  --hero-accent-soft: rgba(168, 133, 63, .22);
+  --hero-tint: rgba(168, 133, 63, .06);
+  position: relative;
+  padding: .4rem .55rem .35rem;
+  border: 1px solid var(--hero-accent-deep);
+  border-left-width: 3px;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, var(--hero-tint), transparent 40%),
+    linear-gradient(180deg, rgba(243,233,207,.7), rgba(232,220,192,.55));
+  opacity: 0;
+  transform: translateY(6px);
+  animation: secret-rise .45s cubic-bezier(.2,.7,.2,1) forwards;
+  animation-delay: calc(var(--hero-i, 0) * 60ms + 30ms);
+}
+/* Once the article has been rendered at least once in this session,
+   `app.js` re-renders with this class so subsequent checkbox toggles
+   don't re-play the intro slide-in. */
+.secret-sheet--mounted {
+  opacity: 1;
+  transform: none;
+  animation: none;
+}
+.secret-sheet[data-hero="elgan"]   { --hero-accent: #b8862e; --hero-accent-deep: #7c5612; --hero-accent-soft: rgba(184, 134, 46, .22); --hero-tint: rgba(184, 134, 46, .07); }
+.secret-sheet[data-hero="gerdwyn"] { --hero-accent: #6c8a4d; --hero-accent-deep: #3f5a27; --hero-accent-soft: rgba(108, 138, 77, .22); --hero-tint: rgba(108, 138, 77, .07); }
+.secret-sheet[data-hero="iunis"]   { --hero-accent: #7891aa; --hero-accent-deep: #455d75; --hero-accent-soft: rgba(120, 145, 170, .22); --hero-tint: rgba(120, 145, 170, .07); }
+.secret-sheet[data-hero="osbert"]  { --hero-accent: #a45628; --hero-accent-deep: #6a3614; --hero-accent-soft: rgba(164, 86, 40, .22); --hero-tint: rgba(164, 86, 40, .07); }
+
+@keyframes secret-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .secret-sheet { opacity: 1; transform: none; animation: none; }
+}
+
+/* Header — NAME · «secret» on a single tight line. */
+.secret-sheet__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .15rem .5rem;
+  padding-bottom: .3rem;
+  margin-bottom: .3rem;
+  border-bottom: 1px solid var(--hero-accent-soft);
+}
+.secret-sheet__name {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-weight: 400;
+  font-size: .95rem;
+  margin: 0;
+  color: var(--ink);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255,250,230,.4);
+}
+.secret-sheet__name::first-letter {
+  color: var(--hero-accent-deep);
+  font-size: 1.18em;
+}
+.secret-sheet__secret {
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-style: italic;
+  font-size: .82rem;
+  color: var(--ink-soft);
+  line-height: 1.15;
+}
+
+.secret-sheet__cards {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+
+/* --- Secret card (one per Carta number) ------------------------------ */
+/* No padding, no surrounding box — the card is just a head row plus
+   its three recuerdos. The head goes gilded when all three are sealed. */
+.secret-card { position: relative; }
+
+.secret-card__head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .4rem;
+  padding: .08rem 0;
+  transition: color .2s;
+}
+.secret-card__num {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .82rem;
+  letter-spacing: .06em;
+  color: var(--hero-accent-deep);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  padding: 1px 6px;
+  border: 1px solid var(--hero-accent-soft);
+  border-radius: 2px;
+  background: rgba(232,220,192,.4);
+  white-space: nowrap;
+  transition: background .25s, color .25s, border-color .25s;
+}
+.secret-card__rule {
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg,
+    var(--hero-accent-soft) 0%,
+    rgba(122,90,40,.18) 60%,
+    transparent 100%);
+}
+.secret-card__count {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .6rem;
+  letter-spacing: .12em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.secret-card__count-sep { margin: 0 .08em; opacity: .6; }
+.secret-card__seal {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--hero-accent);
+  color: var(--vellum-hi);
+  box-shadow: 0 0 0 2px rgba(255,250,230,.5), inset 0 0 0 1px rgba(0,0,0,.15);
+}
+.secret-card__seal svg { width: .85em; height: .85em; }
+
+/* Card-complete: head plaque gilds itself; the rule fattens and warms;
+   the recuerdo rows tint subtly so the eye lands on incomplete cards. */
+.secret-card[data-complete="true"] .secret-card__num {
+  background: var(--hero-accent);
+  border-color: var(--hero-accent-deep);
+  color: var(--vellum-hi);
+}
+.secret-card[data-complete="true"] .secret-card__rule {
+  background: linear-gradient(90deg,
+    var(--hero-accent) 0%,
+    var(--hero-accent-soft) 70%,
+    transparent 100%);
+  opacity: .9;
+}
+
+/* --- Recuerdo row (single achievement) ------------------------------- */
+.recuerdo__list {
+  list-style: none;
+  padding: 0 0 0 .15rem;
+  margin: 0;
+}
+.recuerdo {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: .45rem;
+  align-items: start;
+  padding: .12rem 0 .14rem;
+  transition: opacity .2s;
+}
+.recuerdo[data-sealed="true"] { opacity: .58; }
+
+/* Ink checkbox — same square language as the ledger checkboxes used by
+   Misiones/Compañeros. Filled with blood + check on seal. */
+.recuerdo__check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 1px solid var(--ink-soft);
+  background: var(--vellum-hi);
+  cursor: pointer;
+  padding: 0;
+  color: var(--vellum-hi);
+  display: grid;
+  place-items: center;
+  border-radius: 1px;
+  transition: background .12s, border-color .12s;
+}
+.recuerdo__check svg { width: .8em; height: .8em; }
+.recuerdo__check:focus-visible {
+  outline: 1.5px solid var(--hero-accent-deep);
+  outline-offset: 1px;
+}
+.recuerdo[data-sealed="true"] .recuerdo__check {
+  background: var(--blood);
+  border-color: var(--blood-deep);
+}
+
+/* Body — momento tag inline with the condition prose, wrapping freely.
+   `display: inline` on body and condition keeps the chip flush with
+   the first words of the rule so each row reads as one continuous line. */
+.recuerdo__body {
+  display: block;
+  font-family: 'IM Fell English Local', Georgia, serif;
+  font-size: .84rem;
+  line-height: 1.25;
+  color: var(--ink);
+  min-width: 0;
+  word-break: break-word;
+  hyphens: auto;
+}
+/* Primary action label — "Recuerdo {Hero} {N}". The player matches this
+   string to the physical secret card they need to flip when the
+   condition fires. Inked in the hero accent so it's the first thing
+   the eye finds on each row. */
+.recuerdo__label {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .58rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+  color: var(--vellum-hi);
+  background: var(--hero-accent-deep);
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-right: .35rem;
+  vertical-align: 2px;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(255,250,230,.15);
+}
+/* Momento — secondary timing tag, trailing the condition prose. */
+.recuerdo__momento {
+  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .54rem;
+  letter-spacing: .14em;
+  text-transform: lowercase;
+  color: var(--ink-soft);
+  padding: 1px 5px;
+  border: 1px solid var(--hero-accent-soft);
+  border-radius: 2px;
+  background: rgba(232,220,192,.5);
+  margin-left: .35rem;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+.recuerdo__condicion { display: inline; }
+.recuerdo[data-sealed="true"] .recuerdo__condicion {
+  color: var(--ash);
+  text-decoration: line-through;
+  text-decoration-color: rgba(106,85,56,.55);
+}
+.recuerdo[data-sealed="true"] .recuerdo__momento {
+  color: var(--ink-faint);
+}
+.recuerdo[data-sealed="true"] .recuerdo__label {
+  background: var(--ink-faint);
+  color: var(--vellum-hi);
+  opacity: .85;
+}
+

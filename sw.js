@@ -1,7 +1,7 @@
 // Single source of truth for the deployed shell version. Bump this constant
 // on every deploy — the new SW will install, broadcast the value, and the
 // client will reflect it in the drawer header.
-const VERSION = 'v30';
+const VERSION = 'v31';
 const CACHE = `kor-companion-${VERSION}`;
 
 const SHELL = [
@@ -15,6 +15,7 @@ const SHELL = [
   './store.js',
   './db.js',
   './statuses.js',
+  './achievements.js',
   './icon.svg',
   './fonts/fonts.css',
   './fonts/im-fell-english-400.woff2',
