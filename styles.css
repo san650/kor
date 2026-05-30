@@ -43,7 +43,14 @@ html, body {
   margin: 0;
   background: var(--leather);
   color: var(--ink);
-  font-family: 'Iowan Old Style', 'Hoefler Text', Georgia, 'Apple Garamond', serif;
+  /* NumMono first: a digits-only @font-face (see fonts/fonts.css) that
+     hijacks U+0030–0039 so all numbers in the UI render in a monospace
+     face, while the rest of the text falls through to the serif stack. */
+  font-family: 'NumMono', 'Iowan Old Style', 'Hoefler Text', Georgia, 'Apple Garamond', serif;
+  /* tabular-nums on the root so every digit, regardless of its parent
+     font stack, lines up vertically — important for the chapter / day /
+     location chips that already shift between fonts. */
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   line-height: 1.55;
   -webkit-text-size-adjust: 100%;
@@ -103,7 +110,7 @@ body {
 /* The wordmark — set hot, on a single line, framed by the gilt rules. */
 .tome-head__title {
   margin: 0;
-  font-family: 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', 'Cormorant Garamond', Georgia, serif;
   font-weight: 400;
   font-size: clamp(1.55rem, 6.6vw, 1.95rem);
   line-height: 1;
@@ -208,7 +215,7 @@ body {
 .scene + .scene { margin-top: 1.6rem; }
 
 .scene__sub {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .72rem;
   letter-spacing: .16em;
   color: var(--ash);
@@ -224,7 +231,7 @@ body {
   -webkit-appearance: none;
   appearance: none;
   font: inherit;
-  font-family: 'IM Fell DW Pica SC Local', 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', 'IM Fell English Local', Georgia, serif;
   letter-spacing: .12em;
   text-transform: lowercase;
   font-size: .82rem;
@@ -279,7 +286,7 @@ body {
   padding: 0 0 .15rem;
 }
 .ledger__title {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: 1.05rem;
   margin: 0;
@@ -304,7 +311,7 @@ body {
   border: 1px solid rgba(122,90,40,.4);
   color: var(--ink-soft);
   font: inherit;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .58rem;
   letter-spacing: .18em;
   text-transform: lowercase;
@@ -394,7 +401,7 @@ body {
   background: rgba(122, 90, 40, .04);
 }
 .ledger__row-loc {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .68rem;
   letter-spacing: .08em;
   color: var(--blood);
@@ -406,7 +413,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .ledger__row-title {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: .98rem;
   color: var(--ink);
   word-break: break-word;
@@ -417,7 +424,7 @@ body {
    Distinct ink tint and a softer border so it reads as metadata, not as
    the primary location identifier. */
 .ledger__row-when {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .65rem;
   letter-spacing: .1em;
   color: var(--ink-soft);
@@ -485,7 +492,7 @@ body {
   border: none;
   text-align: left;
   cursor: pointer;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: .98rem;
   color: var(--ink);
   white-space: pre-wrap;
@@ -530,7 +537,7 @@ body {
 }
 .sub-ledger__head:first-child { margin-top: .35rem; }
 .sub-ledger__title {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-weight: 400;
   font-size: .72rem;
   letter-spacing: .22em;
@@ -550,7 +557,7 @@ body {
   background: transparent;
   border: 1px solid rgba(122,90,40,.32);
   color: var(--ink-soft);
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .54rem;
   letter-spacing: .18em;
   text-transform: lowercase;
@@ -594,7 +601,7 @@ body {
   box-shadow: inset 0 0 0 1px rgba(122,26,23,.04);
 }
 .loc__add-plus {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   color: var(--ink-soft);
   font-size: 1.05rem;
   line-height: 1;
@@ -605,7 +612,7 @@ body {
 .loc__add-input {
   flex: 1;
   min-width: 0;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1rem;
   background: transparent;
   border: none;
@@ -690,7 +697,7 @@ body {
 .loc__tag-body:focus-visible { outline: none; }
 
 .loc__tag-code {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.18rem;
   line-height: 1;
   color: var(--ink);
@@ -959,7 +966,7 @@ body {
   background: transparent;
   border: none;
   border-bottom: 1.5px solid rgba(122,90,40,.3);
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.5rem;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -1064,14 +1071,14 @@ body {
   transition: color .15s;
 }
 .tab__glyph {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.45rem;
   line-height: 1;
   color: var(--gold-deep);
   transition: color .15s, text-shadow .15s;
 }
 .tab__name {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .6rem;
   letter-spacing: .14em;
   text-transform: lowercase;
@@ -1158,7 +1165,7 @@ body {
   cursor: default;
 }
 .prompt__title {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: 1.3rem;
   margin: 0;
@@ -1179,7 +1186,7 @@ body {
   gap: .25rem;
 }
 .prompt__label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .7rem;
   letter-spacing: .18em;
   color: var(--ash);
@@ -1188,7 +1195,7 @@ body {
 .prompt__field input,
 .prompt__field textarea {
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.1rem;
   background: transparent;
   border: none;
@@ -1203,7 +1210,7 @@ body {
   resize: vertical;
   min-height: 4rem;
   line-height: 1.35;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
 }
 .prompt__field input:focus,
 .prompt__field textarea:focus { border-bottom-color: var(--blood); }
@@ -1222,7 +1229,7 @@ body {
 }
 .cap-row select {
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1rem;
   background: rgba(232,220,192,.45);
   border: 1px solid var(--ink-soft);
@@ -1258,7 +1265,7 @@ body {
   border: 1px solid var(--ink-soft);
   color: var(--ink);
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.2rem;
   line-height: 1;
   width: 2.4rem;
@@ -1278,7 +1285,7 @@ body {
   padding: 0 .5rem;
   border-top: 1px solid var(--ink-soft);
   border-bottom: 1px solid var(--ink-soft);
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.1rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -1298,7 +1305,7 @@ body {
   border: none;
   color: var(--ink-soft);
   font: inherit;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .78rem;
   letter-spacing: .14em;
   text-transform: lowercase;
@@ -1357,7 +1364,7 @@ body {
 .status-search {
   width: 100%;
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.05rem;
   background: transparent;
   border: none;
@@ -1383,7 +1390,7 @@ body {
   background: transparent;
   border: none;
   color: var(--ink-soft);
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.5rem;
   line-height: 1;
   padding: 0;
@@ -1403,7 +1410,7 @@ body {
   border: 1px solid var(--ink-faint);
   color: var(--ink-soft);
   font: inherit;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .72rem;
   letter-spacing: .14em;
   text-transform: lowercase;
@@ -1428,39 +1435,59 @@ body {
   color: var(--blood);
 }
 
-/* Active-statuses summary — at-a-glance list at the top of the section. */
+/* Active-statuses summary — at-a-glance list at the top of the section.
+   Multi-column flow so the alphabetical order reads top-to-bottom down
+   each column, then jumps to the next column (column-major), which is
+   what readers expect from a manuscript index. */
 .status-summary {
   list-style: none;
-  margin: 0 0 .75rem;
+  margin: 0 0 .85rem;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .35rem .6rem;
+  column-count: 2;
+  column-gap: 1.1rem;
 }
-@media (min-width: 720px) {
-  .status-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-@media (min-width: 1080px) {
-  .status-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
+@media (min-width: 720px) { .status-summary { column-count: 3; } }
+@media (min-width: 1080px) { .status-summary { column-count: 4; } }
+
+/* Vertical stack — name above value. The previous horizontal layout
+   broke when a status held many filled pips (e.g. "Caminos alternativos"
+   at level 11): a wide `nowrap` value claimed the whole row width,
+   squeezing the name to one letter per line inside the narrow column.
+   Stacking removes the contention entirely. */
 .status-summary__item {
   display: flex;
   flex-direction: column;
-  gap: .1rem;
-  overflow-wrap: anywhere;
+  gap: .05rem;
+  padding: .2rem 0 .25rem;
+  break-inside: avoid;
+  border-bottom: 1px dotted rgba(122, 90, 40, .28);
   line-height: 1.2;
 }
+.status-summary__item:last-child { border-bottom: none; }
 .status-summary__name {
-  font-family: 'IM Fell DW Pica SC Local', 'IM Fell English Local', Georgia, serif;
-  font-size: .72rem;
-  letter-spacing: .12em;
-  color: var(--ink-soft);
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
+  font-size: .95rem;
+  color: var(--ink);
+  word-break: break-word;
+}
+/* Bold + blood drop-cap on the first letter of every status name.
+   ::first-letter applies to the first typographic letter of a block-
+   level container; flex items are block-level so it Just Works. */
+.status-summary__name::first-letter {
+  font-weight: 700;
+  color: var(--blood);
+  font-size: 1.1em;
+  letter-spacing: 0;
 }
 .status-summary__value {
-  font-family: 'IM Fell English Local', Georgia, serif;
-  font-size: 1rem;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
+  font-size: .92rem;
   color: var(--blood);
   font-variant-numeric: tabular-nums;
+  word-spacing: .04em;
+  /* Wrap freely so an 11-level status doesn't blow the column out. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Alphabetical illuminated initial */
@@ -1473,7 +1500,7 @@ body {
 }
 .alpha:first-of-type { margin-top: .5rem; }
 .alpha__letter {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.55rem;
   color: var(--blood);
   line-height: 1;
@@ -1537,14 +1564,14 @@ body {
   margin-bottom: .35rem;
 }
 .status__name {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.02rem;
   color: var(--ink);
   word-break: break-word;
 }
 .status[data-active="true"] .status__name { color: var(--blood); }
 .status__value {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .68rem;
   letter-spacing: .12em;
   color: var(--ash);
@@ -1558,9 +1585,9 @@ body {
 }
 .status__pip {
   appearance: none;
-  width: 22px;
-  height: 22px;
-  min-height: 22px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
   background: var(--vellum-hi);
   border: 1px solid var(--ink-soft);
@@ -1569,8 +1596,8 @@ body {
   position: relative;
   display: grid;
   place-items: center;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .62rem;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: 1rem;
   letter-spacing: 0;
   line-height: 1;
   color: var(--ink-faint);
@@ -1709,7 +1736,7 @@ body {
   opacity: .55;
 }
 .drawer__title {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: 1.2rem;
   margin: 0;
@@ -1724,7 +1751,7 @@ body {
 .drawer__version {
   display: inline-block;
   margin-left: .45rem;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .55rem;
   letter-spacing: .12em;
   color: var(--ink-faint);
@@ -1742,7 +1769,7 @@ body {
   color: var(--ink-soft);
   cursor: pointer;
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.3rem;
   line-height: 1;
   border-radius: 4px;
@@ -1845,7 +1872,7 @@ body {
   opacity: .65;
 }
 .drawer__action-label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .68rem;
   letter-spacing: .18em;
   text-transform: lowercase;
@@ -1886,7 +1913,7 @@ body {
   background: rgba(122,26,23,.06);
 }
 .drawer__item-glyph {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.55rem;
   line-height: 1;
   color: var(--gold-deep);
@@ -1900,11 +1927,11 @@ body {
   min-width: 0;
 }
 .drawer__item-title {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.05rem;
 }
 .drawer__item-sub {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .62rem;
   letter-spacing: .14em;
   color: var(--ash);
@@ -1928,7 +1955,7 @@ body {
 }
 .drawer__log-entry:last-child { border-bottom: none; }
 .drawer__log-time {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .68rem;
   letter-spacing: .12em;
   color: var(--gold-deep);
@@ -1937,7 +1964,7 @@ body {
   min-width: 3rem;
 }
 .drawer__log-text {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: .98rem;
   color: var(--ink);
   word-break: break-word;
@@ -1967,7 +1994,7 @@ body {
 }
 .gamesheet__field--block { grid-column: 1 / -1; }
 .gamesheet__label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .62rem;
   letter-spacing: .14em;
   text-transform: lowercase;
@@ -1975,7 +2002,7 @@ body {
 }
 .gamesheet__input {
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1rem;
   background: rgba(232,220,192,.55);
   border: none;
@@ -1994,7 +2021,7 @@ body {
    tap target, slight inset shadow so they read as engraved cells. */
 .gamesheet__input--stat {
   text-align: center;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.1rem;
   background: linear-gradient(180deg, rgba(243,233,207,.85), rgba(212,179,92,.18));
   border: 1px solid var(--ink-faint);
@@ -2014,7 +2041,7 @@ body {
   width: 5.5ch;
   min-width: 5.5ch;
   text-align: center;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1rem;
   font-variant-numeric: tabular-nums;
   background: linear-gradient(180deg, rgba(243,233,207,.85), rgba(212,179,92,.16));
@@ -2144,7 +2171,7 @@ body {
   display: block;
 }
 .gamesheet__add-hero-label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .72rem;
   letter-spacing: .2em;
   text-transform: lowercase;
@@ -2221,7 +2248,7 @@ body {
   height: 64%;
 }
 .hero-picker__name {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: 1.05rem;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -2342,7 +2369,7 @@ body {
 }
 
 .hero__name {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: 1.6rem;
   margin: 0;
@@ -2368,7 +2395,7 @@ body {
   display: inline-flex;
   align-items: baseline;
   gap: .5rem;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   color: var(--hero-accent-deep);
   font-size: 1.05rem;
 }
@@ -2382,7 +2409,7 @@ body {
 .hero__loc::before { content: '('; }
 .hero__loc::after  { content: ')'; }
 .hero__loc-tag {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .65rem;
   letter-spacing: .18em;
   color: var(--ash);
@@ -2453,7 +2480,7 @@ body {
   flex: none;
 }
 .hero__rubric-title {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: 1.02rem;
   margin: 0;
@@ -2492,7 +2519,7 @@ body {
 }
 .hero__cell-input {
   /* Inscribed plaque — engraved feel, no fussy border, just inset shadow */
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: 1.5rem;
   color: var(--ink);
@@ -2564,7 +2591,7 @@ body {
   background-repeat: no-repeat;
 }
 .hero__cell-label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .58rem;
   letter-spacing: .14em;
   line-height: 1.15;
@@ -2646,7 +2673,7 @@ button, [role="tab"], .ledger__check {
   align-items: center;
 }
 .time__label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .58rem;
   letter-spacing: .22em;
   text-transform: lowercase;
@@ -2664,7 +2691,7 @@ button, [role="tab"], .ledger__check {
   border: 1px solid var(--ink-faint);
   color: var(--ink);
   font: inherit;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: .9rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: .04em;
@@ -2736,7 +2763,7 @@ button, [role="tab"], .ledger__check {
   border: 1px solid var(--gold-deep);
   border-radius: 4px;
   color: var(--ink);
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   box-shadow:
     inset 0 0 0 2px rgba(232, 220, 192, .72),
     0 14px 30px rgba(0, 0, 0, .48);
@@ -2773,7 +2800,7 @@ button, [role="tab"], .ledger__check {
   gap: .12rem;
 }
 .toast__kind {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .6rem;
   letter-spacing: .2em;
   text-transform: lowercase;
@@ -2933,7 +2960,7 @@ button, [role="tab"], .ledger__check {
     margin: 0;
   }
   .tab__name {
-    font-family: 'IM Fell English Local', Georgia, serif;
+    font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
     font-size: .95rem;
     letter-spacing: .02em;
     text-transform: none;
@@ -2981,7 +3008,7 @@ button, [role="tab"], .ledger__check {
   }
   .drawer-knob::after {
     content: "Más opciones";
-    font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+    font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
     font-size: .72rem;
     letter-spacing: .14em;
     text-transform: lowercase;
@@ -3065,7 +3092,7 @@ button, [role="tab"], .ledger__check {
   border-radius: 0 2px 2px 0;
 }
 .by-loc__chips-label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .56rem;
   letter-spacing: .24em;
   text-transform: lowercase;
@@ -3079,7 +3106,7 @@ button, [role="tab"], .ledger__check {
   background: transparent;
   border: 1px solid var(--ink-faint);
   color: var(--ink);
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: .82rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: .04em;
@@ -3098,7 +3125,7 @@ button, [role="tab"], .ledger__check {
   color: #f7e8bf;
 }
 .by-loc__chip--all {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .62rem;
   letter-spacing: .14em;
   text-transform: lowercase;
@@ -3129,7 +3156,7 @@ button, [role="tab"], .ledger__check {
   align-items: baseline;
   gap: .4rem;
   padding: .35rem .15rem .3rem;
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .62rem;
   letter-spacing: .18em;
   text-transform: lowercase;
@@ -3191,7 +3218,7 @@ button, [role="tab"], .ledger__check {
   margin: .45rem 0 .1rem;
   padding: .6rem .8rem;
   text-align: center;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-style: italic;
   font-size: .88rem;
   color: var(--ink-faint);
@@ -3259,7 +3286,7 @@ button, [role="tab"], .ledger__check {
   border-bottom: 1px solid var(--hero-accent-soft);
 }
 .secret-sheet__name {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-weight: 400;
   font-size: .95rem;
   margin: 0;
@@ -3274,7 +3301,7 @@ button, [role="tab"], .ledger__check {
   font-size: 1.18em;
 }
 .secret-sheet__secret {
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-style: italic;
   font-size: .82rem;
   color: var(--ink-soft);
@@ -3301,7 +3328,7 @@ button, [role="tab"], .ledger__check {
   transition: color .2s;
 }
 .secret-card__num {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .82rem;
   letter-spacing: .06em;
   color: var(--hero-accent-deep);
@@ -3323,7 +3350,7 @@ button, [role="tab"], .ledger__check {
     transparent 100%);
 }
 .secret-card__count {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .6rem;
   letter-spacing: .12em;
   color: var(--ink-faint);
@@ -3407,7 +3434,7 @@ button, [role="tab"], .ledger__check {
    the first words of the rule so each row reads as one continuous line. */
 .recuerdo__body {
   display: block;
-  font-family: 'IM Fell English Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
   font-size: .84rem;
   line-height: 1.25;
   color: var(--ink);
@@ -3420,7 +3447,7 @@ button, [role="tab"], .ledger__check {
    condition fires. Inked in the hero accent so it's the first thing
    the eye finds on each row. */
 .recuerdo__label {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .58rem;
   letter-spacing: .14em;
   text-transform: lowercase;
@@ -3435,7 +3462,7 @@ button, [role="tab"], .ledger__check {
 }
 /* Momento — secondary timing tag, trailing the condition prose. */
 .recuerdo__momento {
-  font-family: 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
   font-size: .54rem;
   letter-spacing: .14em;
   text-transform: lowercase;

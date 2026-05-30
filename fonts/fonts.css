@@ -28,5 +28,28 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* Digits-only override: map U+0030–U+0039 to a monospace stack so every
+   number in the UI (location codes, tallies, chapter buttons, recuerdo
+   IDs, etc.) renders in a clean tabular face while the rest of the text
+   stays in IM Fell. Wrapping in @font-face with unicode-range keeps the
+   override declarative — we add this family at the head of `body`'s
+   font stack and the browser only consults it for codepoints that match.
+   Listing it as `font-family` (not `src: url(...)`) is the trick: every
+   `local()` candidate is a real installed monospace, so any modern macOS
+   / iOS / Windows / Linux box hits one and the digits are crisp. */
+@font-face {
+  font-family: 'NumMono';
+  font-style: normal;
+  font-weight: 400;
+  src: local('SF Mono'),
+       local('SFMono-Regular'),
+       local('Menlo'),
+       local('Consolas'),
+       local('Liberation Mono'),
+       local('DejaVu Sans Mono'),
+       local('Courier New');
+  unicode-range: U+0030-0039;
+}
+
 /* For body copy, fall back to system serifs (Iowan Old Style on iOS, Hoefler
    Text on macOS, Georgia elsewhere). They harmonize with IM Fell display. */
