@@ -1047,10 +1047,38 @@ const renderLedgerBody = (items, doneLabel, makeRows) => {
 // the empty case explicitly via `showAll`.
 const baseLoc = (s) => (s || '').trim().toLowerCase().replace(/[a-z]+$/i, '');
 
+// Small "Crónica en curso" indicator pinned to the top of Andanzas — shows
+// the chapter and day the players are currently in. Reads the same fields
+// the Transcurso del Tiempo wheel writes (`selectedChapter` + the matching
+// `chapterTime[i]` count), and applies the same "first day is always I"
+// normalization so a fresh game reads as `Cap 1 · Día I` even before the
+// wheel has been touched.
+const renderAndanzasNow = (doc) => {
+  const selected = Math.max(0, Math.min(CHAPTER_COUNT - 1, doc.selectedChapter ?? 0));
+  const counts = Array.isArray(doc.chapterTime) ? doc.chapterTime : [];
+  const day = Math.max(1, Math.min(TIME_WHEEL_SEGMENTS, counts[selected] || 0));
+  return el('div', {
+    class: 'andanzas-now',
+    role: 'status',
+    'aria-label': `Capítulo ${selected + 1}, Día ${ROMAN_NUMERALS[day - 1]}`,
+  },
+    el('span', { class: 'andanzas-now__seg' },
+      el('span', { class: 'andanzas-now__lbl' }, 'capítulo'),
+      el('span', { class: 'andanzas-now__val' }, String(selected + 1)),
+    ),
+    el('span', { class: 'andanzas-now__sep', 'aria-hidden': 'true' }, '·'),
+    el('span', { class: 'andanzas-now__seg' },
+      el('span', { class: 'andanzas-now__lbl' }, 'día'),
+      el('span', { class: 'andanzas-now__val' }, ROMAN_NUMERALS[day - 1]),
+    ),
+  );
+};
+
 // `selectedLocation === null` means the "Todas" pseudo-chip is active and
 // every ledger renders unfiltered.
 const renderByLocation = (doc) => {
   const scene = el('section', { class: 'scene' });
+  scene.append(renderAndanzasNow(doc));
 
   // Build the alphabetical (numeric-aware) list of known locations.
   const locations = (doc.locations || [])
@@ -1410,12 +1438,15 @@ const setChapterTime = (chapter, from, to) => {
 const renderTimeTrackers = (doc) => {
   const counts = Array.isArray(doc.chapterTime) ? doc.chapterTime : [];
   const selected = Math.max(0, Math.min(CHAPTER_COUNT - 1, doc.selectedChapter ?? 0));
-  const count = counts[selected] || 0;
+  // The chapter the players are in always has at least Day I — the first
+  // day of any chapter is never empty.
+  const count = Math.max(1, counts[selected] || 0);
 
   const chapterRow = el('div', { class: 'time__row', role: 'tablist', 'aria-label': 'Capítulo' });
   for (let i = 0; i < CHAPTER_COUNT; i++) {
-    const c = counts[i] || 0;
+    const cRaw = counts[i] || 0;
     const isSelected = i === selected;
+    const c = isSelected ? Math.max(1, cRaw) : cRaw;
     const state = c >= TIME_WHEEL_SEGMENTS ? 'done' : c > 0 ? 'partial' : 'empty';
     chapterRow.append(el('button', {
       type: 'button',
@@ -1427,6 +1458,10 @@ const renderTimeTrackers = (doc) => {
       onclick: () => {
         if (i === selected) return;
         store.dispatch(makeCommand('SET_SELECTED_CHAPTER', { from: selected, to: i }));
+        // Entering a chapter places the party on Day I — no empty day.
+        if ((counts[i] || 0) === 0) {
+          store.dispatch(makeCommand('SET_CHAPTER_TIME', { chapter: i, from: 0, to: 1 }));
+        }
       },
     }, String(i + 1)));
   }
@@ -1441,9 +1476,10 @@ const renderTimeTrackers = (doc) => {
       dataset: { filled: isFilled ? 'true' : 'false', current: isCurrent ? 'true' : 'false' },
       'aria-pressed': isFilled ? 'true' : 'false',
       'aria-label': `Día ${ROMAN_NUMERALS[d]} (${d + 1} de ${TIME_WHEEL_SEGMENTS})`,
-      // Same gesture as the old horarium hours: tap a day to advance to
-      // it; tap the currently-active day to retreat one step.
-      onclick: () => setChapterTime(selected, count, count === d + 1 ? d : d + 1),
+      // Tap a day to advance to it; tap the currently-active day to retreat
+      // one step. Day I floors the retreat so the active chapter never
+      // drops to an empty day.
+      onclick: () => setChapterTime(selected, count, count === d + 1 ? Math.max(1, d) : d + 1),
     }, ROMAN_NUMERALS[d]));
   }
 
@@ -1473,7 +1509,6 @@ const renderHorariumSection = (doc) =>
    ------------------------------------------------------------------------- */
 
 let statusSearch = '';
-let statusOnlyActive = false;
 
 // Sort a list by `location` ascending (numeric-aware), placing items with no
 // location at the end.
@@ -1494,7 +1529,7 @@ const renderStatuses = (doc) => {
   const scene = el('section', { class: 'scene' });
   const active = doc.statuses || {};
 
-  // Controls: search box + activos toggle.
+  // Controls: search box.
   const controls = el('div', { class: 'status-controls' },
     el('div', { class: 'status-search-wrap' },
       el('input', {
@@ -1520,13 +1555,6 @@ const renderStatuses = (doc) => {
         },
       }, '×'),
     ),
-    el('button', {
-      type: 'button',
-      class: 'status-onlyactive',
-      'aria-pressed': statusOnlyActive ? 'true' : 'false',
-      onclick: () => { statusOnlyActive = !statusOnlyActive; render(); },
-      title: 'Mostrar sólo los estados con valor mayor que cero',
-    }, 'activos'),
   );
   scene.append(controls);
 
@@ -1550,11 +1578,9 @@ const renderStatuses = (doc) => {
   }
 
   const q = stripAccents(statusSearch.trim());
-  let filtered = STATUSES;
-  if (q) filtered = filtered.filter((s) => stripAccents(s.name).includes(q));
-  // While searching, ignore the "activos" filter so a typed query always
-  // surfaces every matching estado.
-  else if (statusOnlyActive) filtered = filtered.filter((s) => (active[s.id]?.length ?? 0) > 0);
+  const filtered = q
+    ? STATUSES.filter((s) => stripAccents(s.name).includes(q))
+    : STATUSES;
 
   if (filtered.length === 0) {
     scene.append(el('p', { class: 'hush' }, 'Nada se halla con esos signos.'));
@@ -2217,7 +2243,13 @@ const sheetSelect = ({ path, label, min = 0, max = 20 }) => {
       const from = getSessionAt(path);
       const to = e.target.value;
       if (String(from ?? '') === to) return;
-      store.dispatch(makeCommand('SET_SESSION_FIELD', { path, from, to }));
+      // Defer the dispatch (and the full re-render it triggers) until iOS
+      // Safari finishes dismissing its native <select> picker. Otherwise the
+      // anchor element is rebuilt mid-dismissal and the picker flashes on
+      // iPad PWA.
+      setTimeout(() => {
+        store.dispatch(makeCommand('SET_SESSION_FIELD', { path, from, to }));
+      }, 0);
     },
   }, ...options);
   // Assigning value *after* the options exist lets the matching <option>
@@ -2526,6 +2558,10 @@ const captureFocus = () => {
     return { kind: 'status-search', sel: a.selectionStart ?? null };
   }
   if (a.dataset?.sessionPath) {
+    // <select> has no caret to preserve and re-focusing the rebuilt element
+    // replays its :focus border/box-shadow transition — visible on iPad PWA
+    // as a flash right after picking a number.
+    if (a.tagName === 'SELECT') return null;
     return { kind: 'session-field', path: a.dataset.sessionPath, sel: a.selectionStart ?? null };
   }
   if (a.dataset?.guideStoneField) {

@@ -1404,37 +1404,6 @@ body {
 .status-search-clear:hover,
 .status-search-clear:focus-visible { color: var(--blood); outline: none; }
 
-.status-onlyactive {
-  appearance: none;
-  background: transparent;
-  border: 1px solid var(--ink-faint);
-  color: var(--ink-soft);
-  font: inherit;
-  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
-  font-size: .72rem;
-  letter-spacing: .14em;
-  text-transform: lowercase;
-  padding: .35rem .65rem;
-  border-radius: 2px;
-  min-height: 36px;
-  cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
-  white-space: nowrap;
-}
-.status-onlyactive::before {
-  content: "○ ";
-  color: var(--ink-faint);
-}
-.status-onlyactive[aria-pressed="true"] {
-  border-color: var(--blood);
-  color: var(--blood);
-  background: rgba(122,26,23,.06);
-}
-.status-onlyactive[aria-pressed="true"]::before {
-  content: "● ";
-  color: var(--blood);
-}
-
 /* Active-statuses summary — at-a-glance list at the top of the section.
    Multi-column flow so the alphabetical order reads top-to-bottom down
    each column, then jumps to the next column (column-major), which is
@@ -3076,6 +3045,51 @@ button, [role="tab"], .ledger__check {
 /* =========================================================================
    By-location view — chip selector at the top of the Locación tab
    ========================================================================= */
+
+/* "Crónica en curso" — small chapter + day notation pinned to the very top
+   of Andanzas. Mirrors the wheel in Transcurso del Tiempo so the players
+   can see at a glance the (chapter, day) the game is in. Uses the same
+   small-caps label / illuminated numeral pairing as the rest of the tome,
+   with a hair-thin gold rule for separation from the chip strips below. */
+.andanzas-now {
+  display: flex;
+  align-items: baseline;
+  gap: .65rem;
+  width: max-content;
+  max-width: 100%;
+  margin: .1rem auto .55rem;
+  padding: .1rem .85rem .25rem;
+  border-bottom: 1px solid var(--gold-deep);
+  background:
+    radial-gradient(ellipse at center top, rgba(168,133,63,.10), transparent 70%);
+}
+.andanzas-now__seg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .35rem;
+}
+.andanzas-now__lbl {
+  font-family: 'NumMono', 'IM Fell DW Pica SC Local', Georgia, serif;
+  font-size: .58rem;
+  letter-spacing: .26em;
+  text-transform: lowercase;
+  color: var(--ink-faint);
+}
+.andanzas-now__val {
+  font-family: 'NumMono', 'IM Fell English Local', Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  color: var(--blood);
+}
+.andanzas-now__sep {
+  color: var(--gold);
+  font-size: .85rem;
+  opacity: .7;
+  align-self: center;
+  transform: translateY(-1px);
+}
 
 /* Each filter row leads with a small SC label (e.g. "locación", "capítulo")
    followed by tight chips. The row sits on a faint vellum stripe and a

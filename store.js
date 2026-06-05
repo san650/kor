@@ -30,7 +30,9 @@ const initialState = () => ({
     // means unsealed; we never store `false` so the object stays small
     // and JSON imports stay forward-compatible.
     achievements: {},
-    chapterTime: Array.from({ length: 10 }, () => 0),
+    // Index 0 starts at 1 because the players begin every game on Cap 1, Día I —
+    // the first day of any chapter is never empty.
+    chapterTime: Array.from({ length: 10 }, (_, i) => (i === 0 ? 1 : 0)),
     selectedChapter: 0,
     session: defaultSession(),
   },
